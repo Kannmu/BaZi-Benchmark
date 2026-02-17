@@ -4,4 +4,5 @@
 
 ## PS
 
+- Python虚拟环境：Miniconda，虚拟环境名称为：`BaZiBench`
 - 记得经常使用Git配合GitHub进行版本控制
