@@ -6,6 +6,15 @@
 
 ## 八字计算核心规则
 
+## 当前实现进展（2026-02-18）
+
+- 已完成 `bazibench/core` 六大核心模块：`constants.py`、`calculator.py`、`wuxing.py`、`ten_gods.py`、`strength.py`、`interactions.py`
+- 已补齐 `bazibench/__init__.py` 与 `bazibench/core/__init__.py` 导出接口
+- 已新增测试用例：`tests/test_constants.py`、`test_calculator.py`、`test_wuxing.py`、`test_ten_gods.py`、`test_strength.py`、`test_interactions.py`
+- 为 pytest 增加 `tests/conftest.py`，确保包导入路径可用
+- 用户在本地环境运行 `pytest` 全部通过
+
+
 ### 1. 天干地支基础
 
 **十天干**:
