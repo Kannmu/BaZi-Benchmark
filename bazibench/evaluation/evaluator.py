@@ -54,7 +54,8 @@ class Evaluator:
             samples_to_eval = samples
             
         results = []
-        output_path = os.path.join(self.output_dir, f"{self.model.model_name}_results.jsonl")
+        safe_model_name = self.model.model_name.replace("/", "_")
+        output_path = os.path.join(self.output_dir, f"{safe_model_name}_results.jsonl")
         
         # Resume logic: Read existing results
         completed_ids = set()
@@ -152,7 +153,8 @@ class Evaluator:
         return results
 
     def _save_metrics(self, metrics: Dict):
-        metrics_path = os.path.join(self.output_dir, f"{self.model.model_name}_metrics.json")
+        safe_model_name = self.model.model_name.replace("/", "_")
+        metrics_path = os.path.join(self.output_dir, f"{safe_model_name}_metrics.json")
         with open(metrics_path, "w", encoding="utf-8") as f:
             json.dump(metrics, f, indent=2, ensure_ascii=False)
 

@@ -24,18 +24,20 @@ def analyze_wuxing(pillars: dict) -> dict:
     counts = Counter()
     all_elements = set()
     
+    # Count Heavenly Stems
     for stem in stems:
         wx = STEM_INFO[stem]["wuxing"]
         counts[wx] += 1
         all_elements.add(wx)
         
+    # Count Earthly Branches (Hidden Stems included)
     for branch in branches:
-        wx = BRANCH_INFO[branch]["wuxing"]
-        counts[wx] += 1
-        all_elements.add(wx)
-        # Check hidden stems for existence (to avoid false "missing")
-        for hidden in BRANCH_INFO[branch]["hidden_stems"]:
-            all_elements.add(STEM_INFO[hidden]["wuxing"])
+        # Instead of just counting the branch's main wuxing, we count the hidden stems
+        hidden_stems = BRANCH_INFO[branch]["hidden_stems"]
+        for hidden in hidden_stems:
+            wx = STEM_INFO[hidden]["wuxing"]
+            counts[wx] += 1
+            all_elements.add(wx)
 
     missing = [e for e in WUXING if e not in all_elements]
 

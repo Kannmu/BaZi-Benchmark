@@ -160,19 +160,19 @@ class BaziDatasetGenerator:
             difficulty = 2
         
         elif task_type == "wuxing":
-            instruction = f"请分析该八字的五行个数与缺失：{analysis.chart.year} {analysis.chart.month} {analysis.chart.day} {analysis.chart.hour}"
+            instruction = f"请分析该八字的五行个数与缺失（注意：必须计算地支藏干，天干和地支藏干一起统计）：{analysis.chart.year} {analysis.chart.month} {analysis.chart.day} {analysis.chart.hour}"
             counts_str = ", ".join([f"{k}: {v}" for k, v in analysis.wuxing.counts.items()])
             missing_str = ", ".join(analysis.wuxing.missing) if analysis.wuxing.missing else "无"
             expected_output = f"五行统计: {counts_str}\n缺失五行: {missing_str}"
-            difficulty = 2
+            difficulty = 3
 
         elif task_type == "ten_gods":
-            instruction = f"请列出该八字的十神（年/月/日/时）：{analysis.chart.year} {analysis.chart.month} {analysis.chart.day} {analysis.chart.hour}"
+            instruction = f"请列出该八字的十神（按年/月/日/时顺序，只输出十神名称，用空格分隔）：{analysis.chart.year} {analysis.chart.month} {analysis.chart.day} {analysis.chart.hour}"
             expected_output = " ".join(analysis.ten_gods.gods)
             difficulty = 3
             
         elif task_type == "strength":
-            instruction = f"请判断该八字日主的强弱：{analysis.chart.year} {analysis.chart.month} {analysis.chart.day} {analysis.chart.hour}"
+            instruction = f"请判断该八字日主的强弱（身强/身弱/中和），并尝试给出得分（如有），只输出判定结果和得分，格式如：得分: 1.0, 判定: 身强。八字为：{analysis.chart.year} {analysis.chart.month} {analysis.chart.day} {analysis.chart.hour}"
             expected_output = f"得分: {analysis.strength.score}, 判定: {analysis.strength.level}"
             difficulty = 4
 
