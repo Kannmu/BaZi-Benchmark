@@ -14,9 +14,9 @@ models:
   - name: "minimax/minimax-m2.5"
     provider: "zenmux"
     
-  # - name: "moonshotai/kimi-k2.5"
-  #   provider: "zenmux"
-  #   temperature: 1.0
+  - name: "moonshotai/kimi-k2.5"
+    provider: "zenmux"
+    temperature: 1.0
     
-  # - name: "z-ai/glm-5"
-  #   provider: "zenmux"
+  - name: "z-ai/glm-5"
+    provider: "zenmux"
