@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections import Counter
 
-from .constants import LIU_HE, LIU_CHONG, SAN_HE, XING, SELF_XING
+from .constants import LIU_HE, LIU_CHONG, SAN_HE, XING, SELF_XING, SAN_HUI, LIU_HAI
 
 
 def analyze_interactions(branches: list[str]) -> dict:
@@ -14,6 +14,8 @@ def analyze_interactions(branches: list[str]) -> dict:
     liuhe = [pair for pair in LIU_HE if set(pair).issubset(branch_set)]
     liuchong = [pair for pair in LIU_CHONG if set(pair).issubset(branch_set)]
     sanhe = [group for group in SAN_HE if set(group).issubset(branch_set)]
+    sanhui = [group for group in SAN_HUI if set(group).issubset(branch_set)]
+    
     xing = []
     for group in XING:
         if set(group).issubset(branch_set):
@@ -22,11 +24,14 @@ def analyze_interactions(branches: list[str]) -> dict:
             xing.append(group)
 
     self_xing = [b for b in SELF_XING if counts[b] >= 2]
+    liuhai = [pair for pair in LIU_HAI if set(pair).issubset(branch_set)]
 
     return {
         "liuhe": liuhe,
         "liuchong": liuchong,
         "sanhe": sanhe,
+        "sanhui": sanhui,
         "xing": xing,
         "self_xing": self_xing,
+        "liuhai": liuhai,
     }

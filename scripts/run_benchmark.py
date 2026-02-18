@@ -64,7 +64,7 @@ def main():
     config_path = args.config or str(project_root / "data" / "configs" / "models.yaml")
     registry = ModelRegistry(config_path)
     
-    input_path = args.input or str(project_root / "data" / "samples" / "bazi_benchmark_v1.jsonl")
+    input_path = args.input or str(project_root / "data" / "samples" / "bazi_benchmark.jsonl")
     
     if not os.path.exists(input_path):
         print(f"错误: 数据文件不存在: {input_path}")

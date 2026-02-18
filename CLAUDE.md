@@ -5,4 +5,5 @@
 ## PS
 
 - Python虚拟环境：Miniconda，虚拟环境名称为：`BaZiBench`
-- 记得经常使用Git配合GitHub进行版本控制
+- ZENMUX_API_KEY已经在~/.zshrc文件中被设置好了，但是Trae使用的Shell可能不会自动source，需要每次手动执行`source ~/.zshrc`后再使用。
+- 尽量不要使用V1/V2或者mini这样的版本后缀，会让工程目录变得复杂混乱。直接修改同一个版本。

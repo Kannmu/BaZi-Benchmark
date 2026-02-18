@@ -9,6 +9,8 @@ from typing import List, Dict
 
 from lunar_python import Solar
 
+from .constants import TIANGAN, DIZHI
+
 @dataclass(frozen=True)
 class BaZiPillar:
     stem: str
@@ -121,3 +123,84 @@ class BaZiCalculator:
                  "ganzhi": dy.getGanZhi()
              })
         return result
+
+    def calculate_liunian(self, year: int) -> str:
+        """
+        计算流年干支。
+        
+        Args:
+            year: 年份 (例如 2024)
+            
+        Returns:
+            str: 流年干支 (例如 "甲辰")
+        """
+        # 1984年是甲子年
+        offset = year - 1984
+        gan_idx = offset % 10
+        zhi_idx = offset % 12
+        
+        # 处理负数情况
+        if gan_idx < 0:
+            gan_idx += 10
+        if zhi_idx < 0:
+            zhi_idx += 12
+            
+        return TIANGAN[gan_idx] + DIZHI[zhi_idx]
+
+    def calculate_with_dayun(self, dt: datetime, gender: int, longitude: float = 120.0, latitude: float = 30.0, utc_offset: float = 8.0) -> dict:
+        """
+        一次性计算八字四柱和大运，避免重复创建 Solar 对象。
+        
+        Args:
+            dt: datetime对象 (Clock Time)
+            gender: 性别 (1男, 0女)
+            longitude: 经度，默认120.0
+            latitude: 纬度，默认30.0
+            utc_offset: 时区，默认8.0
+            
+        Returns:
+            dict: 包含四柱信息和大运列表的字典
+        """
+        solar = self._get_solar(dt, longitude, utc_offset)
+        lunar = solar.getLunar()
+        bazi = lunar.getEightChar()
+        
+        year_ganzhi = bazi.getYear()
+        month_ganzhi = bazi.getMonth()
+        day_ganzhi = bazi.getDay()
+        hour_ganzhi = bazi.getTime()
+        
+        chart_data = {
+            "year": year_ganzhi,
+            "month": month_ganzhi,
+            "day": day_ganzhi,
+            "hour": hour_ganzhi,
+            "year_stem": year_ganzhi[0],
+            "year_branch": year_ganzhi[1],
+            "month_stem": month_ganzhi[0],
+            "month_branch": month_ganzhi[1],
+            "day_stem": day_ganzhi[0],
+            "day_branch": day_ganzhi[1],
+            "hour_stem": hour_ganzhi[0],
+            "hour_branch": hour_ganzhi[1],
+        }
+        
+        if gender not in [0, 1]:
+            raise ValueError("Gender must be 1 (Male) or 0 (Female)")
+        
+        yun = bazi.getYun(gender)
+        da_yun_list = yun.getDaYun()
+        
+        dayun_data = []
+        for dy in da_yun_list[1:]:
+            dayun_data.append({
+                "start_year": dy.getStartYear(),
+                "start_age": dy.getStartAge(),
+                "ganzhi": dy.getGanZhi()
+            })
+        
+        return {
+            "chart": chart_data,
+            "dayun": dayun_data
+        }
+

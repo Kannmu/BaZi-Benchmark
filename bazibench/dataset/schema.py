@@ -47,8 +47,11 @@ class InteractionsAnalysis(BaseModel):
     liuhe: List[List[str]] = Field(..., description="六合")
     liuchong: List[List[str]] = Field(..., description="六冲")
     sanhe: List[List[str]] = Field(..., description="三合")
+    sanhui: List[List[str]] = Field(..., description="三会")
     xing: List[List[str]] = Field(..., description="相刑")
     self_xing: List[str] = Field(..., description="自刑")
+    liuhai: List[List[str]] = Field(..., description="六害")
+
 
 
 class DaYunAnalysis(BaseModel):

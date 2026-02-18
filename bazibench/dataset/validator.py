@@ -21,11 +21,11 @@ class BaziValidator:
             if branch not in DIZHI:
                 errors.append(f"Invalid branch: {branch}")
         
-        # 2. 验证五行总数
+        # 2. 验证五行总数 (天干4个 + 地支藏干，范围8-16)
         wuxing = sample.ground_truth.wuxing
         total_count = sum(wuxing.counts.values())
-        if total_count != 8:
-            errors.append(f"Total wuxing count must be 8, got {total_count}")
+        if not (8 <= total_count <= 16):
+            errors.append(f"Total wuxing count must be between 8-16, got {total_count}")
         
         # 3. 验证十神数量
         ten_gods = sample.ground_truth.ten_gods

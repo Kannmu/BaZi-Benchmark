@@ -18,7 +18,7 @@ def ten_god(day_stem: str, target_stem: str) -> str:
         return "比肩" if same_polarity else "劫财"
 
     if SHENG[target_element] == day_element:
-        return "正印" if same_polarity else "偏印"
+        return "偏印" if same_polarity else "正印"
 
     if SHENG[day_element] == target_element:
         return "食神" if same_polarity else "伤官"

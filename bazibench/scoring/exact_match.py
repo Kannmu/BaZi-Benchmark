@@ -138,12 +138,8 @@ class ExactMatchScorer(BaseScorer):
 
     def _extract_ten_gods(self, text: str) -> List[str]:
         """提取十神"""
-        gods = ['比肩', '劫财', '食神', '伤官', '偏财', '正财', '七杀', '正官', '偏印', '正印']
-        found = []
-        for god in gods:
-            if god in text:
-                found.append(god)
-        return found
+        gods_pattern = r'(比肩|劫财|食神|伤官|偏财|正财|七杀|正官|偏印|正印|日主)'
+        return re.findall(gods_pattern, text)
 
     def _extract_strength(self, text: str) -> str:
         """提取强弱判断"""

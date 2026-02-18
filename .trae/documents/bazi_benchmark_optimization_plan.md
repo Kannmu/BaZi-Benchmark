@@ -1,209 +1,110 @@
-# BaZi Benchmark 优化计划
+# BaZi Benchmark Optimization Plan
 
-**创建时间**: 2026-02-18
-**状态**: 待审核
+## 1. 现状分析 (Current Status Analysis)
 
----
+经过对项目代码库 (`bazibench/core`, `bazibench/dataset`, `bazibench/scoring`) 的详细审查，结合 PRD 文档，我们对 Dimension 6-8 的实现情况得出以下结论：
 
-## 问题概述
+### Dimension 6: 刑冲合害 (Interactions)
 
-基于对项目代码的全面分析，发现以下主要问题：
+* **现状**: `core/interactions.py` 已实现了六合 (Liu He)、六冲 (Liu Chong)、三合 (San He)、相刑 (Xing)、自刑 (Self Xing)。
 
-### 高优先级问题 (P0)
-1. **代码重复定义**: `strength.py` 中 `analyze_strength` 函数被定义两次
-2. **五行计数逻辑不一致**: `counts` 只统计主气，`missing` 却检查藏干
-3. **性别字段缺失**: 部分样本 `gender` 为 null，影响大运计算
+* **缺失**: 缺少 **三会 (San Hui)** 和 **六害 (Xiang Hai/Liu Hai)** 的实现。
 
-### 中优先级问题 (P1)
-4. **评分器与输出格式不匹配**: 模型输出冗长，期望输出简洁
-5. **强弱判断阈值需验证**: 阈值基于经验，缺乏典籍验证
-6. **numpy 依赖处理不完整**: requirements.txt 缺少 numpy
+* **影响**: 评估维度不完整，无法全面测试模型对地支复杂关系的掌握。
 
-### 低优先级问题 (P2-P3)
-7. **测试覆盖不足**: 缺少边界情况测试
-8. **刑冲合害分析不完整**: 未考虑天干合化等
-9. **用神判断过于简化**: 只考虑强弱，未考虑格局
-10. **评估结果分析维度有限**: 缺少错误类型分析
+### Dimension 7: 大运流年 (Luck Cycle)
 
----
+* **现状**: `core/calculator.py` 和 `generator.py` 仅实现了 **大运 (Da Yun)** 的排盘。
 
-## 优化方案
+* **缺失**: 完全缺失 **流年 (Liu Nian/Annual Pillar)** 的计算逻辑和相关题目生成。
 
-### Phase 1: 修复高优先级问题
+* **影响**: 无法评估模型对时间流转（流年）与命局关系的推理能力，不符合 PRD 中 D7 的完整定义。
 
-#### 1.1 修复代码重复定义
-**文件**: `bazibench/core/strength.py`
+### Dimension 8: 综合解读 (Comprehensive Interpretation)
 
-**操作**: 删除第一个 `analyze_strength` 函数定义（第22-69行），保留第二个完整版本（第71-142行）
+* **现状**: `generator.py` 中的 prompt 较为简单 (`"请对该{gender}命进行综合八字分析..."`)。
 
-**验证**: 运行 `pytest tests/test_strength.py -v`
+* **缺失**: 缺乏分领域的具体引导（如事业、财运、婚姻），导致模型输出可能过于发散，难以进行标准化的 LLM-as-a-judge 评估。
 
----
+* **影响**: 综合能力的评估颗粒度不够。
 
-#### 1.2 统一五行计数逻辑
-**文件**: `bazibench/core/wuxing.py`
+### 其他发现 (Other Findings)
 
-**问题分析**:
-- 当前 `counts` 只统计天干+地支主气
-- `missing` 检查时却考虑了藏干
-- 导致期望输出与模型理解不一致
+* **Dimension 5 (Useful God)**: 目前仅基于强弱和调候的简单启发式规则，缺乏深度逻辑。
 
-**方案选择**:
-- **方案A**: 统一为只统计主气（简化版，适合基础评估）
-- **方案B**: 统一为统计藏干（完整版，更符合传统命理）
+* **LLM Judge**: 代码已支持 OpenAI 兼容接口，但 `data/configs/models.yaml` 中 Qwen 的配置被注释。
 
-**推荐**: 方案A - 保持当前 `counts` 逻辑，修改 `missing` 检查逻辑
+***
 
-**修改内容**:
-```python
-# 修改 missing 检查，只检查主气
-all_elements = set()
-for stem in stems:
-    all_elements.add(STEM_INFO[stem]["wuxing"])
-for branch in branches:
-    all_elements.add(BRANCH_INFO[branch]["wuxing"])
-# 移除藏干检查
-missing = [e for e in WUXING if e not in all_elements]
-```
+## 2. 优化方案 (Optimization Plan)
 
-**同步修改**: 更新数据生成器中的期望输出格式说明
+我们将分阶段实施以下优化，重点完善 D6-D8 的功能，并启用 Qwen 模型进行评估。
 
----
+### Phase 1: 核心逻辑增强 (Core Logic Enhancement)
 
-#### 1.3 修复性别字段缺失
-**文件**: `bazibench/dataset/generator.py`
+**目标**: 补全 D6 和 D7 的核心算法缺失。
 
-**问题**: `generate_sample` 方法中 `gender` 可能为 None
+1. **完善** **`core/interactions.py`**:
 
-**修改**: 确保所有样本都有有效的 gender 值
-```python
-def generate_sample(self, task_type: str = "chart") -> BaziSample:
-    dt = self.generate_random_date()
-    gender = self.rng.choice([0, 1])  # 已有，确保不为 None
-```
+   * 增加 `check_san_hui` 函数：识别寅卯辰（木）、巳午未（火）、申酉戌（金）、亥子丑（水）三会局。
 
-**验证**: 检查生成的数据文件中 gender 字段
+   * 增加 `check_xiang_hai` 函数：识别子未害、丑午害、寅巳害、卯辰害、申亥害、酉戌害。
 
----
+   * 更新 `get_interactions` 聚合函数。
 
-### Phase 2: 优化评分系统
+2. **完善** **`core/calculator.py`**:
 
-#### 2.1 增强 ExactMatchScorer
-**文件**: `bazibench/scoring/exact_match.py`
+   * 增加 `calculate_liunian` 函数：根据大运和出生年份，推算指定年份的流年干支。
 
-**优化点**:
-1. 增加对排盘格式的智能识别（年柱/月柱/日柱/时柱）
-2. 优化五行计数的容错匹配
-3. 增加对"身旺"/"身强"等同义词的处理
+   * 逻辑：流年干支 = (年份 - 3) % 60 对应的干支（或基于1984甲子年推算）。
 
-**新增方法**:
-```python
-def _extract_bazi_chart(self, text: str) -> Dict[str, str]:
-    """提取八字四柱"""
-    # 支持多种格式:
-    # "庚午 辛巳 丁丑 乙巳"
-    # "年柱: 庚午, 月柱: 辛巳..."
-    # "| 年柱 | 庚午 | ..."
-```
+### Phase 2: 数据生成器升级 (Dataset Generator Upgrade)
 
----
+**目标**: 更新生成器以支持新维度的题目生成。
 
-#### 2.2 优化 Prompt 设计
-**文件**: `bazibench/dataset/generator.py`
+1. **更新** **`dataset/generator.py`**:
 
-**问题**: 当前 prompt 过于开放，模型输出格式不统一
+   * **D6 (Interactions)**: 增加生成涉及三会、六害的题目（例如：“地支中是否存在三会木局？”）。
 
-**优化**: 在 instruction 中明确输出格式要求
-```python
-# 五行任务
-instruction = f"""请分析该八字的五行个数与缺失：{chart}
+   * **D7 (Luck Cycle)**: 增加流年相关题目（例如：“请推算2024年的流年干支及其与日柱的关系”）。
 
-请按以下格式输出（不要添加额外解释）：
-五行统计: 金: X, 木: X, 水: X, 火: X, 土: X
-缺失五行: X（如无缺失则填"无"）"""
-```
+   * **D8 (Comprehensive)**: 优化 Prompt 模板，增加结构化要求（例如：“请从性格、事业、财运三个方面进行综合分析”），以便于 Judge 评分。
 
----
+### Phase 3: 评估配置与模型接入 (Configuration & Model Integration)
 
-### Phase 3: 完善依赖与测试
+**目标**: 启用 `qwen/qwen3.5-plus` 作为评估模型和 Judge 模型。
 
-#### 3.1 更新依赖
-**文件**: `requirements.txt`
+1. **配置** **`data/configs/models.yaml`**:
 
-**修改**:
-```diff
-+ numpy>=1.20.0  # 用于统计分析
-```
+   * 取消 `qwen/qwen3.5-plus` 的注释。
 
-或移除 evaluator.py 中未使用的 numpy 相关代码
+   * 配置 `zenmux` provider（或标准 OpenAI compatible provider）。
 
----
+   * 设置 API Key 环境变量。
 
-#### 3.2 增加测试用例
-**文件**: `tests/test_strength.py`, `tests/test_wuxing.py`
+2. **验证** **`scoring/llm_judge.py`**:
 
-**新增测试**:
-1. 节气交接时刻的排盘测试
-2. 五行计数与缺失的一致性测试
-3. 边界情况测试（如五行俱全、极端强弱）
+   * 确保 Judge 评分逻辑适配 Qwen 的输出格式。
 
----
+### Phase 4: 执行与验证 (Execution & Verification)
 
-### Phase 4: 验证与回归测试
+1. **生成新数据集**: 运行 `scripts/generate_data.py` 生成包含新 D6-D8 题目的测试集 `data/samples/bazi_benchmark_v2.jsonl`。
+2. **运行评估**: 使用 `scripts/run_benchmark.py` 对 Qwen 模型进行全维度评估。
+3. **生成报告**: 输出最终的分析报告。
 
-#### 4.1 运行完整测试套件
-```bash
-pytest tests/ -v --cov=bazibench
-```
+***
 
-#### 4.2 重新生成测试数据
-```bash
-python scripts/generate_data.py --output data/samples/bazi_benchmark_v2.jsonl --count 1000
-```
+## 3. 任务清单 (Task List)
 
-#### 4.3 运行小规模评估验证
-```bash
-python scripts/run_benchmark.py --model xiaomi/mimo-v2-flash-free --samples 30
-```
+* [ ] **Core**: 实现 `interactions.py` 中的三会 (San Hui) 和六害 (Xiang Hai)。
 
----
+* [ ] **Core**: 实现 `calculator.py` 中的流年 (Liu Nian) 计算。
 
-## 实施顺序
+* [ ] **Dataset**: 更新 `generator.py` 适配 D6 (新关系), D7 (流年), D8 (结构化 Prompt)。
 
-| 步骤 | 任务 | 预计影响 |
-|------|------|----------|
-| 1 | 删除重复函数定义 | 代码质量提升 |
-| 2 | 统一五行计数逻辑 | 五行任务准确率提升 |
-| 3 | 修复性别字段 | 大运任务可用 |
-| 4 | 增强评分器 | 整体准确率提升 |
-| 5 | 优化 Prompt | 输出格式统一 |
-| 6 | 更新依赖 | 消除警告 |
-| 7 | 增加测试 | 代码可靠性提升 |
-| 8 | 验证回归 | 确保修复有效 |
+* [ ] **Config**: 修改 `models.yaml` 启用 Qwen 模型。
 
----
+* [ ] **Script**: 生成 v2 版本数据集。
 
-## 风险评估
+* [ ] **Script**: 运行 Benchmark 并生成报告。
 
-| 风险 | 影响 | 缓解措施 |
-|------|------|----------|
-| 五行逻辑修改影响现有数据 | 中 | 重新生成测试数据 |
-| 评分器修改影响历史结果对比 | 低 | 保留旧版本评分器作为对比 |
-| Prompt 修改影响模型表现 | 中 | A/B 测试对比 |
-
----
-
-## 预期成果
-
-1. **代码质量**: 消除重复代码，提高可维护性
-2. **评估准确性**: 五行任务准确率预计提升 20%+
-3. **数据完整性**: 所有样本包含有效性别信息
-4. **测试覆盖**: 增加边界情况测试，覆盖率提升
-
----
-
-## 待确认事项
-
-1. 五行计数逻辑选择方案 A（只统计主气）还是方案 B（统计藏干）？
-2. 是否需要保留历史评估结果作为对比基准？
-3. 是否需要同步更新已生成的测试数据？
