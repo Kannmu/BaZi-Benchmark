@@ -1,5 +1,5 @@
 generation:
-  total_samples: 1000
+  total_samples: 100
   batch_size: 50
   base_seed: 2024
   num_workers: 6

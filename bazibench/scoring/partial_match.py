@@ -59,24 +59,44 @@ class PartialMatchScorer(ExactMatchScorer):
         # Normalize function
         def normalize(item):
             if isinstance(item, list):
-                return tuple(sorted(item))
+                # Recursively normalize list items in case of nested structures
+                return tuple(sorted(normalize(i) for i in item))
+            if isinstance(item, dict):
+                # Convert dict to sorted tuple of items
+                return tuple(sorted((k, normalize(v)) for k, v in item.items()))
             return item
             
         # Special handling for self_xing: ["午"] vs [["午", "午"]]
         if key == "self_xing":
             norm_gt = set()
             for x in gt_list:
-                norm_gt.add(x)
+                if isinstance(x, (list, tuple)) and len(x) == 2 and x[0] == x[1]:
+                    norm_gt.add(x[0])
+                elif isinstance(x, str):
+                    norm_gt.add(x)
+                else:
+                    norm_gt.add(normalize(x))
             
             norm_resp = set()
             for x in resp_list:
-                if isinstance(x, list) and len(x) == 2 and x[0] == x[1]:
+                if isinstance(x, (list, tuple)) and len(x) == 2 and x[0] == x[1]:
                     norm_resp.add(x[0])
                 elif isinstance(x, str):
                     norm_resp.add(x)
+                else:
+                    try:
+                        norm_resp.add(normalize(x))
+                    except TypeError:
+                        pass # Ignore unhashable items that we can't normalize
         else:
             norm_gt = set(normalize(x) for x in gt_list)
-            norm_resp = set(normalize(x) for x in resp_list)
+            norm_resp = set()
+            for x in resp_list:
+                try:
+                    norm_resp.add(normalize(x))
+                except TypeError:
+                    pass
+
             
         if not norm_gt:
             return 0.0

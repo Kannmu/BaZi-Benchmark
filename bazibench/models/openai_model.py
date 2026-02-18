@@ -1,7 +1,8 @@
 from typing import Optional, Dict, Any
 import os
+import logging
 from .base import ModelBase
-from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception, before_sleep_log
 
 try:
     from openai import OpenAI
@@ -9,6 +10,9 @@ try:
 except ImportError:
     OpenAI = None
     openai = None
+
+# Setup logger
+logger = logging.getLogger("bazibench.models.openai")
 
 def _should_retry_exception(exception: BaseException) -> bool:
     """
@@ -40,7 +44,7 @@ class OpenAIModel(ModelBase):
     Supports OpenAI API and compatible APIs (e.g. DeepSeek, Qwen).
     """
     
-    def __init__(self, model_name: str, api_key: Optional[str] = None, base_url: Optional[str] = None, **kwargs):
+    def __init__(self, model_name: str, api_key: Optional[str] = None, base_url: Optional[str] = None, timeout: int = 300, **kwargs):
         """
         Initialize OpenAI model.
         
@@ -48,6 +52,7 @@ class OpenAIModel(ModelBase):
             model_name: The name of the model to use.
             api_key: OpenAI API key. If not provided, will look for OPENAI_API_KEY env var.
             base_url: OpenAI Base URL. If not provided, will look for OPENAI_BASE_URL env var.
+            timeout: Request timeout in seconds. Default is 300s (5 mins) for reasoning models.
             **kwargs: Configuration for the model (temperature, etc.) and client.
         """
         super().__init__(model_name, **kwargs)
@@ -56,9 +61,12 @@ class OpenAIModel(ModelBase):
             
         self.api_key = api_key or os.environ.get("OPENAI_API_KEY")
         self.base_url = base_url or os.environ.get("OPENAI_BASE_URL")
+        self.timeout = timeout
         
         # Separate client args from generation config
-        client_args = {}
+        client_args = {
+            "timeout": self.timeout
+        }
         if self.api_key:
             client_args["api_key"] = self.api_key
         if self.base_url:
@@ -69,8 +77,9 @@ class OpenAIModel(ModelBase):
 
     @retry(
         stop=stop_after_attempt(5),
-        wait=wait_exponential(multiplier=1, min=2, max=10),
-        retry=retry_if_exception(_should_retry_exception)
+        wait=wait_exponential(multiplier=1, min=2, max=60),
+        retry=retry_if_exception(_should_retry_exception),
+        before_sleep=before_sleep_log(logger, logging.WARNING)
     )
     def generate(self, prompt: str, system_prompt: Optional[str] = None, **kwargs) -> str:
         messages = []
@@ -91,6 +100,25 @@ class OpenAIModel(ModelBase):
         # Update with kwargs passed to generate
         generation_params.update(kwargs)
         
-        # Direct call, letting tenacity handle exceptions
-        response = self.client.chat.completions.create(**generation_params)
-        return response.choices[0].message.content
+        try:
+            # Direct call, letting tenacity handle exceptions
+            response = self.client.chat.completions.create(**generation_params)
+            
+            # Extract content
+            message = response.choices[0].message
+            content = message.content
+            
+            # Log reasoning if available (for debugging/analysis purposes)
+            # OpenAI python client might hide extra fields, check if we can access it
+            if hasattr(message, "reasoning") and message.reasoning:
+                logger.info(f"Model {self.model_name} provided reasoning (length: {len(message.reasoning)})")
+            elif hasattr(message, "model_extra") and message.model_extra and "reasoning" in message.model_extra:
+                logger.info(f"Model {self.model_name} provided reasoning (length: {len(message.model_extra['reasoning'])})")
+            elif hasattr(message, "_previous") and "reasoning" in message._previous:
+                 # Pydantic v1 fallback for extra fields
+                 logger.info(f"Model {self.model_name} provided reasoning (length: {len(message._previous['reasoning'])})")
+                
+            return content
+        except Exception as e:
+            logger.error(f"Error generating response from {self.model_name}: {e}")
+            raise

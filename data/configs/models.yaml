@@ -13,6 +13,7 @@ models:
   
   - name: "minimax/minimax-m2.5"
     provider: "zenmux"
+    timeout: 600
     
   - name: "moonshotai/kimi-k2.5"
     provider: "zenmux"
