@@ -6,6 +6,49 @@
 
 ## 会话日志
 
+### 2026-02-18 会话5
+
+**任务**: 配置 ZenMux 模型服务
+
+**操作记录**:
+
+1. 创建配置文件 `data/configs/models.yaml`
+   - 配置 ZenMux provider (OpenAI兼容接口)
+   - 添加模型: `qwen/qwen3.5-plus`, `minimax/minimax-m2.5`, `moonshotai/kimi-k2.5`, `z-ai/glm-5`
+   - 特殊配置: `moonshotai/kimi-k2.5` 设置 `temperature: 1.0`
+2. 实现模型注册表 `bazibench/models/registry.py`
+   - 支持从 YAML 加载配置
+   - 自动解析环境变量 `ZENMUX_API_KEY`
+   - 实现参数合并逻辑 (优先使用传入参数，其次是模型配置)
+3. 创建测试脚本 `scripts/test_zenmux_models.py`
+   - 验证所有配置模型的连通性
+   - 成功测试 4 个模型
+
+**当前状态**: 模型配置与管理机制已建立，ZenMux 服务接入成功
+
+---
+
+### 2026-02-18 会话4
+
+**任务**: 实现评估框架与模型接口
+
+**操作记录**:
+
+1. 创建 `bazibench/models` 模块
+   - `base.py`: 定义模型抽象基类
+   - `openai_model.py`: 实现OpenAI接口（支持自定义BaseURL）
+   - `anthropic_model.py`: 实现Claude接口
+2. 创建 `bazibench/evaluation` 模块
+   - `evaluator.py`: 实现批量评估引擎，支持断点续传（通过追加写入）
+3. 编写单元测试
+   - `tests/test_models.py`: 验证模型接口实例化与Mock调用
+   - `tests/test_evaluation.py`: 验证评估流程与结果保存
+4. 更新依赖 `requirements.txt`，增加 `openai` 和 `anthropic`
+
+**当前状态**: Phase 3 评估框架主体完成，等待评分系统接入
+
+---
+
 ### 2026-02-18 会话3
 
 **任务**: 实现数据集生成器与数据格式

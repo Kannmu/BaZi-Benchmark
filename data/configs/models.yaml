@@ -1,0 +1,19 @@
+providers:
+  zenmux:
+    type: openai_compatible
+    base_url: "https://zenmux.ai/api/v1"
+    api_key_env: "ZENMUX_API_KEY"
+
+models:
+  - name: "qwen/qwen3.5-plus"
+    provider: "zenmux"
+  
+  - name: "minimax/minimax-m2.5"
+    provider: "zenmux"
+    
+  - name: "moonshotai/kimi-k2.5"
+    provider: "zenmux"
+    temperature: 1.0
+    
+  - name: "z-ai/glm-5"
+    provider: "zenmux"

@@ -67,15 +67,16 @@ BaZiBench是一个创新的LLM评估基准，通过八字分析这一复杂的�
 ---
 
 ### Phase 3: 评估框架
-**状态**: pending
+**状态**: in_progress
 **目标**: 实现完整的评估流程
 
 **任务清单**:
-- [ ] 模型接口抽象层
-- [ ] OpenAI API支持
-- [ ] Anthropic Claude支持
-- [ ] 自定义BaseURL支持
-- [ ] 批量评估功能
+- [x] 模型接口抽象层
+- [x] OpenAI API支持
+- [x] Anthropic Claude支持
+- [x] 自定义BaseURL支持
+- [x] 模型注册与配置管理 (ZenMux)
+- [x] 批量评估功能
 - [ ] 结果统计和分析
 
 **交付物**:
