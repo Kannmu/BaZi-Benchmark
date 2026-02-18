@@ -27,20 +27,20 @@ from .schema import (
 class BaziDatasetGenerator:
     def __init__(self, seed: int = 42):
         self.calculator = BaZiCalculator()
-        random.seed(seed)
+        self.rng = random.Random(seed)
 
     def generate_random_date(self, start_year: int = 1950, end_year: int = 2030) -> datetime:
         """生成随机日期"""
         start_date = datetime(start_year, 1, 1)
         end_date = datetime(end_year, 12, 31)
         delta = end_date - start_date
-        random_days = random.randrange(delta.days)
-        random_seconds = random.randrange(24 * 60 * 60)
+        random_days = self.rng.randrange(delta.days)
+        random_seconds = self.rng.randrange(24 * 60 * 60)
         return start_date + timedelta(days=random_days, seconds=random_seconds)
 
-    def analyze(self, dt: datetime, gender: int = 1) -> BaziAnalysis:
+    def analyze(self, dt: datetime, gender: int = 1, longitude: float = 120.0, latitude: float = 30.0, utc_offset: float = 8.0) -> BaziAnalysis:
         """对指定日期进行全量八字分析"""
-        chart_data = self.calculator.calculate(dt)
+        chart_data = self.calculator.calculate(dt, longitude, latitude, utc_offset)
         wuxing_data = analyze_wuxing(chart_data)
         ten_gods_data = analyze_ten_gods(chart_data)
         strength_data = analyze_strength(chart_data)
@@ -53,13 +53,19 @@ class BaziDatasetGenerator:
         ]
         interactions_data = analyze_interactions(branches)
         
-        da_yun_list = self.calculator.calculate_dayun(dt, gender)
+        da_yun_list = self.calculator.calculate_dayun(dt, gender, longitude, utc_offset)
         
         # Simple Useful God Heuristic
-        if strength_data["score"] < 45:
+        # Strength Thresholds: >= 1.0 Strong, >= -1.0 Neutral, < -1.0 Weak
+        score = strength_data["score"]
+        if score < -1.0:
              ug_type = "印比 (生扶)"
              reason = "日主偏弱，宜用印星生身或比劫帮身"
-        elif strength_data["score"] > 55:
+             # Tiao Hou (Basic)
+             month_branch = chart_data["month_branch"]
+             if month_branch in ["亥", "子", "丑"] and "火" not in wuxing_data["counts"]: # Winter needs Fire
+                 reason += "；生于冬月，需火调候暖局"
+        elif score >= 1.0:
              ug_type = "克泄耗 (抑制)"
              reason = "日主偏强，宜用官杀克制、食伤泄秀或财星耗身"
         else:
@@ -115,8 +121,13 @@ class BaziDatasetGenerator:
     def generate_sample(self, task_type: str = "chart") -> BaziSample:
         """生成单个测试样本"""
         dt = self.generate_random_date()
-        gender = random.choice([0, 1])
-        analysis = self.analyze(dt, gender)
+        gender = self.rng.choice([0, 1])
+        # Default to Beijing
+        longitude = 120.0
+        latitude = 30.0
+        utc_offset = 8.0
+        
+        analysis = self.analyze(dt, gender, longitude, latitude, utc_offset)
         
         sample_id = str(uuid.uuid4())
         input_data = BaziInput(
@@ -125,7 +136,10 @@ class BaziDatasetGenerator:
             day=dt.day,
             hour=dt.hour,
             minute=dt.minute,
-            gender=gender
+            gender=gender,
+            longitude=longitude,
+            latitude=latitude,
+            utc_offset=utc_offset
         )
 
         instruction = ""
@@ -175,9 +189,11 @@ class BaziDatasetGenerator:
 
         elif task_type == "da_yun":
             instruction = f"请排出该{gender_str}命的大运（前3步即可）：{dt.year}年{dt.month}月{dt.day}日 {dt.hour}时生。"
-            dys = analysis.da_yun.pillars[:3]
+            dys = analysis.da_yun.pillars
+            if len(dys) >= 3:
+                dys = dys[:3]
             out_lines = [f"{d['start_age']}岁起运: {d['ganzhi']}" for d in dys]
-            expected_output = "\n".join(out_lines)
+            expected_output = "\n".join(out_lines) if out_lines else "无大运数据"
             difficulty = 3
 
         elif task_type == "useful_god":
@@ -213,6 +229,6 @@ class BaziDatasetGenerator:
         
         samples = []
         for _ in range(count):
-            task_type = random.choice(task_types)
+            task_type = self.rng.choice(task_types)
             samples.append(self.generate_sample(task_type))
         return samples

@@ -23,13 +23,16 @@ class BaZiCalculator:
     def __init__(self) -> None:
         pass
 
-    def _get_solar(self, dt: datetime, longitude: float = 120.0) -> Solar:
+    def _get_solar(self, dt: datetime, longitude: float = 120.0, utc_offset: float = 8.0) -> Solar:
         """
         根据时间和经度获取True Solar Time对应的Solar对象。
         """
         # 1. 计算真太阳时 (True Solar Time)
         # 1.1 平太阳时 (Local Mean Time)
-        offset_minutes = (longitude - 120.0) * 4
+        # 标准经度 = 时区 * 15
+        standard_meridian = utc_offset * 15.0
+        # 经度差带来的时间差 (每度4分钟)
+        offset_minutes = (longitude - standard_meridian) * 4
         
         # 1.2 真太阳时均时差 (Equation of Time)
         day_of_year = dt.timetuple().tm_yday
@@ -49,19 +52,20 @@ class BaZiCalculator:
             true_solar_time.second
         )
 
-    def calculate(self, dt: datetime, longitude: float = 120.0, latitude: float = 30.0) -> dict:
+    def calculate(self, dt: datetime, longitude: float = 120.0, latitude: float = 30.0, utc_offset: float = 8.0) -> dict:
         """
         计算八字四柱。
         
         Args:
             dt: datetime对象 (Clock Time)
-            longitude: 经度，默认120.0 (北京时间基准)
-            latitude: 纬度，默认30.0 (目前用于真太阳时计算的预留)
+            longitude: 经度，默认120.0
+            latitude: 纬度，默认30.0
+            utc_offset: 时区，默认8.0
             
         Returns:
             dict: 包含四柱信息的字典
         """
-        solar = self._get_solar(dt, longitude)
+        solar = self._get_solar(dt, longitude, utc_offset)
         lunar = solar.getLunar()
         bazi = lunar.getEightChar()
         
@@ -86,7 +90,7 @@ class BaZiCalculator:
             "hour_branch": hour_ganzhi[1],
         }
 
-    def calculate_dayun(self, dt: datetime, gender: int, longitude: float = 120.0) -> List[Dict]:
+    def calculate_dayun(self, dt: datetime, gender: int, longitude: float = 120.0, utc_offset: float = 8.0) -> List[Dict]:
         """
         计算大运。
         
@@ -98,7 +102,11 @@ class BaZiCalculator:
         Returns:
             List[Dict]: 大运列表，包含 start_age, start_year, ganzhi
         """
-        solar = self._get_solar(dt, longitude)
+        # 验证性别参数，lunar_python 中 1男 0女
+        if gender not in [0, 1]:
+            raise ValueError("Gender must be 1 (Male) or 0 (Female)")
+
+        solar = self._get_solar(dt, longitude, utc_offset)
         lunar = solar.getLunar()
         bazi = lunar.getEightChar()
         yun = bazi.getYun(gender)

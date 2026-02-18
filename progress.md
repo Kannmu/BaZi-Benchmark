@@ -6,6 +6,35 @@
 
 ## 会话日志
 
+### 2026-02-18 会话7 (Critical Fixes)
+
+**任务**: 修复 PRD 问题分析报告中的关键问题
+
+**操作记录**:
+
+1.  **核心计算修复**:
+    -   `calculator.py`: 实现真太阳时计算（支持 `utc_offset`, `longitude`），修复大运性别验证。
+    -   `strength.py`: 优化藏干权重（细化本气、中气、余气权重），调整强弱判断阈值。
+    -   `wuxing.py`: 修复五行缺失判断，增加对藏干的检查。
+2.  **数据生成器优化**:
+    -   `schema.py`: 增加 `longitude`, `latitude`, `utc_offset` 字段。
+    -   `generator.py`: 
+        -   修复随机种子初始化问题 (`random.Random`)。
+        -   同步强弱阈值逻辑，增加简单的调候用神判断。
+        -   修复大运数据边界条件（少于3步时处理）。
+        -   生成样本时填充地理位置信息（默认北京）。
+3.  **评估框架增强**:
+    -   `evaluator.py`: 引入 `ThreadPoolExecutor` 实现并发评估，添加线程锁确保文件写入安全。
+4.  **模型接口改进**:
+    -   `openai_model.py`: 优化重试逻辑（排除认证/参数错误），增加 `max_tokens` 默认配置。
+5.  **依赖更新**:
+    -   安装 `python-dotenv`, `lunar_python`, `tenacity`。
+    -   所有测试通过（33 tests passed）。
+
+**当前状态**: 核心计算逻辑更严谨，评估框架支持并发，数据生成更规范。
+
+---
+
 ### 2026-02-18 会话6 (Refactoring & Fixes)
 
 **任务**: 修复PRD中报告的问题（核心计算、评估框架、数据生成器）
@@ -144,10 +173,13 @@
 | bazibench/dataset/ | 创建 | 数据集模块 |
 | scripts/generate_data.py | 创建 | 数据生成脚本 |
 | data/samples/ | 生成 | 初始数据集 |
-| bazibench/core/calculator.py | 重构 | 使用 lunar_python |
-| bazibench/evaluation/evaluator.py | 修改 | 支持断点续传 |
-| bazibench/models/openai_model.py | 修改 | 添加重试机制 |
-| bazibench/dataset/generator.py | 修改 | 增加新任务类型 |
+| bazibench/core/calculator.py | 重构 | 使用 lunar_python，支持真太阳时 |
+| bazibench/core/strength.py | 修改 | 优化藏干权重 |
+| bazibench/core/wuxing.py | 修改 | 增加藏干五行统计 |
+| bazibench/dataset/schema.py | 修改 | 增加地理位置字段 |
+| bazibench/dataset/generator.py | 修改 | 修复阈值、随机种子、大运 |
+| bazibench/evaluation/evaluator.py | 修改 | 支持并发和安全写入 |
+| bazibench/models/openai_model.py | 修改 | 优化重试逻辑 |
 
 ---
 
@@ -156,6 +188,7 @@
 - 2026-02-18: pytest 全部通过（用户本地环境）
 - 2026-02-18: 数据集生成脚本成功生成 1000 条有效样本
 - 2026-02-18: 修复后 pytest 全部通过 (Session 6)
+- 2026-02-18: **pytest 全部通过 (Session 7)**
 
 ---
 
@@ -163,6 +196,10 @@
 
 - **Issue**: 原有八字计算逻辑过于简单，不支持真太阳时和精确节气。
 - **Solution**: 引入 `lunar_python` 库，重写 `BaZiCalculator`，并手动实现真太阳时校正。
+- **Issue**: 日主强弱评分与用神判断不一致，且藏干权重粗糙。
+- **Solution**: 细化 `HIDDEN_WEIGHTS`，统一评分阈值，增强用神逻辑。
+- **Issue**: 评估框架串行效率低且有写入竞态。
+- **Solution**: 引入 `ThreadPoolExecutor` 和 `threading.Lock`。
 
 ---
 

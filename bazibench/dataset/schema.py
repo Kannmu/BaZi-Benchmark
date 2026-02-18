@@ -82,6 +82,9 @@ class BaziInput(BaseModel):
     hour: int = Field(..., description="公历小时")
     minute: int = Field(0, description="公历分钟")
     gender: Optional[int] = Field(None, description="性别(1男0女)，可选")
+    longitude: float = Field(120.0, description="出生地经度")
+    latitude: float = Field(30.0, description="出生地纬度")
+    utc_offset: float = Field(8.0, description="时区偏移(如+8.0)")
 
 
 class BaziSample(BaseModel):

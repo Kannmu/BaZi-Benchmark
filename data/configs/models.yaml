@@ -5,15 +5,18 @@ providers:
     api_key_env: "ZENMUX_API_KEY"
 
 models:
-  - name: "qwen/qwen3.5-plus"
+  - name: "xiaomi/mimo-v2-flash-free"
     provider: "zenmux"
   
-  - name: "minimax/minimax-m2.5"
-    provider: "zenmux"
+  # - name: "qwen/qwen3.5-plus"
+  #   provider: "zenmux"
+  
+  # - name: "minimax/minimax-m2.5"
+  #   provider: "zenmux"
     
-  - name: "moonshotai/kimi-k2.5"
-    provider: "zenmux"
-    temperature: 1.0
+  # - name: "moonshotai/kimi-k2.5"
+  #   provider: "zenmux"
+  #   temperature: 1.0
     
-  - name: "z-ai/glm-5"
-    provider: "zenmux"
+  # - name: "z-ai/glm-5"
+  #   provider: "zenmux"

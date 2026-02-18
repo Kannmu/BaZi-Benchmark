@@ -1,5 +1,7 @@
 import json
 import os
+import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import List, Dict, Any, Optional, Union
 from tqdm import tqdm
 from ..models.base import ModelBase
@@ -10,15 +12,16 @@ class Evaluator:
         self.model = model
         self.output_dir = output_dir
         os.makedirs(output_dir, exist_ok=True)
+        self._lock = threading.Lock()
         
     def evaluate(self, samples: Union[List[BaziSample], str], batch_size: int = 1) -> List[Dict]:
         """
         Evaluate the model on a list of samples or a file path to samples.
-        Supports resume functionality.
+        Supports resume functionality and concurrency.
         
         Args:
             samples: List of BaziSample objects or path to jsonl file
-            batch_size: Batch size for evaluation (currently only 1 is supported)
+            batch_size: Number of concurrent threads
             
         Returns:
             List of evaluation results
@@ -29,8 +32,6 @@ class Evaluator:
             with open(samples, "r", encoding="utf-8") as f:
                 for line in f:
                     if line.strip():
-                        # Pydantic v2 uses model_validate_json, v1 uses parse_raw
-                        # Trying compatible way
                         try:
                             loaded_samples.append(BaziSample.model_validate_json(line))
                         except AttributeError:
@@ -68,20 +69,18 @@ class Evaluator:
             print("All samples already evaluated.")
             return results
         
-        for sample in tqdm(samples_to_process, desc=f"Evaluating {self.model.model_name}"):
+        # Define processing function
+        def process_sample(sample):
             # Construct prompt
             prompt = sample.instruction
             
             # Generate response
-            # Note: Retry logic should be handled inside model.generate or here
-            # Ideally inside model to handle specific API errors
             try:
                 response = self.model.generate(prompt)
             except Exception as e:
                 response = f"Error: {str(e)}"
             
             # Create result object
-            # Convert pydantic models to dict
             result = {
                 "sample_id": sample.id,
                 "input": sample.input.model_dump() if hasattr(sample.input, 'model_dump') else sample.input.dict(),
@@ -91,10 +90,23 @@ class Evaluator:
                 "difficulty": sample.difficulty,
                 "tags": sample.tags
             }
-            results.append(result)
             
-            # Save intermediate results (append mode)
-            with open(output_path, "a", encoding="utf-8") as f:
-                f.write(json.dumps(result, ensure_ascii=False) + "\n")
+            # Thread-safe write
+            with self._lock:
+                with open(output_path, "a", encoding="utf-8") as f:
+                    f.write(json.dumps(result, ensure_ascii=False) + "\n")
+            
+            return result
+
+        # Run with ThreadPoolExecutor
+        with ThreadPoolExecutor(max_workers=batch_size) as executor:
+            futures = [executor.submit(process_sample, sample) for sample in samples_to_process]
+            
+            for future in tqdm(as_completed(futures), total=len(samples_to_process), desc=f"Evaluating {self.model.model_name}"):
+                try:
+                    res = future.result()
+                    results.append(res)
+                except Exception as e:
+                    print(f"Task failed: {e}")
             
         return results

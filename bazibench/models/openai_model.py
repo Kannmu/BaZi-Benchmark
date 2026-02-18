@@ -1,7 +1,7 @@
 from typing import Optional, Dict, Any
 import os
 from .base import ModelBase
-from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception
 
 try:
     from openai import OpenAI
@@ -9,6 +9,30 @@ try:
 except ImportError:
     OpenAI = None
     openai = None
+
+def _should_retry_exception(exception: BaseException) -> bool:
+    """
+    Determine if an exception should be retried.
+    """
+    if openai is None:
+        return True # Should not happen if class is initialized
+        
+    # If it's an OpenAI API error
+    if isinstance(exception, openai.APIError):
+        # Do NOT retry these errors
+        if isinstance(exception, (
+            openai.AuthenticationError,
+            openai.BadRequestError,
+            openai.NotFoundError,
+            openai.PermissionDeniedError,
+            openai.UnprocessableEntityError
+        )):
+            return False
+        # Retry others (RateLimit, Timeout, InternalServer, Connection)
+        return True
+        
+    # Retry standard network errors if they occur outside openai package
+    return True
 
 class OpenAIModel(ModelBase):
     """
@@ -46,7 +70,7 @@ class OpenAIModel(ModelBase):
     @retry(
         stop=stop_after_attempt(5),
         wait=wait_exponential(multiplier=1, min=2, max=10),
-        retry=retry_if_exception_type((Exception)) # Retry on most exceptions for robustness, can be specific if needed
+        retry=retry_if_exception(_should_retry_exception)
     )
     def generate(self, prompt: str, system_prompt: Optional[str] = None, **kwargs) -> str:
         messages = []
@@ -61,6 +85,7 @@ class OpenAIModel(ModelBase):
             "model": self.model_name,
             "messages": messages,
             "temperature": self.config.get("temperature", 0.7),
+            "max_tokens": self.config.get("max_tokens", 4096),
         }
         
         # Update with kwargs passed to generate
