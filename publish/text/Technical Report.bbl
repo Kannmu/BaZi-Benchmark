@@ -1,0 +1,99 @@
+\begin{thebibliography}{18}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Anthropic(2023)]{anthropic2023claude}
+Anthropic.
+\newblock Claude 3: A new generation of ai assistants.
+\newblock 2023.
+\newblock URL \url{https://www.anthropic.com/claude}.
+
+\bibitem[Austin et~al.(2021)Austin, Odena, Nye, Bosma, Michalewski, Dohan, Jiang, Cai, Terry, Le, et~al.]{austin2021program}
+Jacob Austin, Augustus Odena, Maxwell Nye, Maarten Bosma, Henryk Michalewski, David Dohan, Ellen Jiang, Carrie Cai, Michael Terry, Quoc Le, et~al.
+\newblock Program synthesis with large language models.
+\newblock \emph{arXiv preprint arXiv:2108.07732}, 2021.
+
+\bibitem[Brown et~al.(2020)Brown, Mann, Ryder, Subbiah, Kaplan, Dhariwal, Neelakantan, Shyam, Sastry, Askell, et~al.]{brown2020language}
+Tom Brown, Benjamin Mann, Nick Ryder, Melanie Subbiah, Jared~D Kaplan, Prafulla Dhariwal, Arvind Neelakantan, Pranav Shyam, Girish Sastry, Amanda Askell, et~al.
+\newblock Language models are few-shot learners.
+\newblock \emph{Advances in neural information processing systems}, 33:\penalty0 1877--1901, 2020.
+
+\bibitem[Chen et~al.(2021)Chen, Tworek, Jun, Yuan, Pinto, Kaplan, Edwards, Burda, Joseph, Brockman, et~al.]{chen2021evaluating}
+Mark Chen, Jerry Tworek, Heewoo Jun, Qiming Yuan, Henrique Ponde de~Oliveira Pinto, Jared Kaplan, Harri Edwards, Yuri Burda, Nicholas Joseph, Greg Brockman, et~al.
+\newblock Evaluating large language models trained on code.
+\newblock \emph{arXiv preprint arXiv:2107.03374}, 2021.
+
+\bibitem[Cobbe et~al.(2021)Cobbe, Kosaraju, Bavarian, Chen, Jun, Kaiser, Plappert, Tworek, Hilton, Nakano, et~al.]{cobbe2021training}
+Karl Cobbe, Vineet Kosaraju, Mohammad Bavarian, Mark Chen, Heewoo Jun, Lukasz Kaiser, Matthias Plappert, Jerry Tworek, Jacob Hilton, Reiichiro Nakano, et~al.
+\newblock Training verifiers to solve math word problems.
+\newblock \emph{arXiv preprint arXiv:2110.14168}, 2021.
+
+\bibitem[Guha et~al.(2023)Guha, Nyarko, Ho, R{\'e}, Chohlas-Wood, Peters, Waldon, Rockmore, Zambrano, et~al.]{guha2023legalbench}
+Neel Guha, Julian Nyarko, Daniel~E Ho, Christopher R{\'e}, Alex Chohlas-Wood, Austin Peters, Brandon Waldon, Danielle Rockmore, Daniel Zambrano, et~al.
+\newblock Legalbench: A collaboratively built benchmark for measuring legal reasoning in large language models.
+\newblock \emph{arXiv preprint arXiv:2308.11462}, 2023.
+
+\bibitem[Hendrycks et~al.(2020)Hendrycks, Burns, Basart, Zou, Mazeika, Song, and Steinhardt]{hendrycks2020measuring}
+Dan Hendrycks, Collin Burns, Steven Basart, Andy Zou, Mantas Mazeika, Dawn Song, and Jacob Steinhardt.
+\newblock Measuring massive multitask language understanding.
+\newblock \emph{arXiv preprint arXiv:2009.03300}, 2020.
+
+\bibitem[Hendrycks et~al.(2021)Hendrycks, Burns, Kadavath, Arora, Basart, Tang, Song, and Steinhardt]{hendrycks2021measuring}
+Dan Hendrycks, Collin Burns, Saurav Kadavath, Akul Arora, Steven Basart, Eric Tang, Dawn Song, and Jacob Steinhardt.
+\newblock Measuring mathematical problem solving with the math dataset.
+\newblock \emph{arXiv preprint arXiv:2103.03874}, 2021.
+
+\bibitem[Jin et~al.(2021)Jin, Pan, Oufattole, Weng, Fang, and Szolovits]{jin2021disease}
+Di~Jin, Eileen Pan, Nassim Oufattole, Wei-Hung Weng, Hanyi Fang, and Peter Szolovits.
+\newblock What disease does this patient have? a large-scale open domain question answering dataset from medical exams.
+\newblock \emph{Applied Sciences}, 11\penalty0 (14):\penalty0 6421, 2021.
+
+\bibitem[Liang et~al.(2022)Liang, Bommasani, Lee, Tsipras, Soylu, Yasunaga, Zhang, Narayanan, Wu, Kumar, et~al.]{liang2022holistic}
+Percy Liang, Rishi Bommasani, Tony Lee, Dimitris Tsipras, Dilara Soylu, Michihiro Yasunaga, Yuhuai Zhang, Deepak Narayanan, Yuhuai Wu, Ananya Kumar, et~al.
+\newblock Holistic evaluation of language models.
+\newblock \emph{arXiv preprint arXiv:2211.09110}, 2022.
+
+\bibitem[Magar and Schwartz(2022)]{magar2022data}
+Inbal Magar and Roy Schwartz.
+\newblock Data contamination: A case study in visual question answering.
+\newblock \emph{arXiv preprint arXiv:2206.04640}, 2022.
+
+\bibitem[OpenAI(2023)]{openai2023gpt4}
+OpenAI.
+\newblock Gpt-4 technical report.
+\newblock \emph{arXiv preprint arXiv:2303.08774}, 2023.
+
+\bibitem[Srivastava et~al.(2022)Srivastava, Rastogi, Rao, Shoeb, Abid, Fisch, Brown, Santoro, Gupta, Garriga-Alonso, et~al.]{srivastava2022beyond}
+Aarohi Srivastava, Abhinav Rastogi, Abhishek Rao, Abu Awal~Md Shoeb, Abubakar Abid, Adam Fisch, Adam~R Brown, Adam Santoro, Aditya Gupta, Adri{\`a} Garriga-Alonso, et~al.
+\newblock Beyond the imitation game: Quantifying and extrapolating the capabilities of language models.
+\newblock \emph{arXiv preprint arXiv:2206.04615}, 2022.
+
+\bibitem[Taylor(2008)]{taylor2008chinese}
+Rodney Taylor.
+\newblock \emph{Chinese astrology: Early Chinese cosmology and its application}.
+\newblock Routledge, 2008.
+
+\bibitem[Wang et~al.(2018)Wang, Singh, Michael, Hill, Levy, and Bowman]{wang2018glue}
+Alex Wang, Amanpreet Singh, Julian Michael, Felix Hill, Omer Levy, and Samuel~R Bowman.
+\newblock Glue: A multi-task benchmark and analysis platform for natural language understanding.
+\newblock In \emph{Proceedings of the 2018 EMNLP Workshop BlackboxNLP: Analyzing and Interpreting Neural Networks for NLP}, pages 353--355, 2018.
+
+\bibitem[Wang et~al.(2019)Wang, Pruksachatkun, Nangia, Singh, Michael, Hill, Levy, and Bowman]{wang2019superglue}
+Alex Wang, Yada Pruksachatkun, Nikita Nangia, Amanpreet Singh, Julian Michael, Felix Hill, Omer Levy, and Samuel~R Bowman.
+\newblock Superglue: A stickier benchmark for general-purpose language understanding systems.
+\newblock In \emph{Advances in neural information processing systems}, volume~32, pages 3266--3280, 2019.
+
+\bibitem[Zhang et~al.(2019)Zhang, Wang, Chen, and Li]{zhang2019digital}
+Xiaobing Zhang, Xiaoyong Wang, Wu~Chen, and Deren Li.
+\newblock Digital dunhuang: A digital heritage project of cultural heritage.
+\newblock In \emph{2019 IEEE International Conference on Big Data (Big Data)}, pages 4869--4871. IEEE, 2019.
+
+\bibitem[Zhou et~al.(2023)Zhou, Wang, Xu, Ning, Hu, Feng, Li, and Wong]{zhou2023don}
+Wenxuan Zhou, Shishuai Wang, Yuzhen Xu, Jiazhan Ning, Peiyi Hu, Xiaochen Feng, Lei Li, and Lihan Wong.
+\newblock Don't make your llm an evaluation benchmark cheater.
+\newblock \emph{arXiv preprint arXiv:2311.01964}, 2023.
+
+\end{thebibliography}

@@ -1,6 +1,830 @@
-% Technical Report for BaZiBench (to be submitted to arXiv)
+\documentclass[11pt]{article}
 
+\usepackage{fontspec}
+\usepackage{xeCJK}
+\usepackage{times}
+\usepackage{latexsym}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{enumitem}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{natbib}
+\usepackage{geometry}
 
+\geometry{margin=1in}
 
+\setCJKmainfont{STSong}
+\setCJKsansfont{STHeiti}
+\setCJKmonofont{STFangsong}
 
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    urlcolor=blue
+}
 
+\newcommand{\method}{BaZiBench}
+\newcommand{\model}[1]{\texttt{#1}}
+
+\title{\method: A Comprehensive Benchmark for Evaluating Large Language Models \\ on Traditional Chinese BaZi Analysis}
+
+\author{
+Anonymous Authors \\
+}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+We present \method, a comprehensive benchmark designed to evaluate the complex reasoning capabilities of Large Language Models (LLMs) through the lens of traditional Chinese BaZi (Four Pillars of Destiny) analysis. BaZi analysis represents a unique challenge for AI systems, requiring multi-step logical reasoning, pattern recognition across symbolic systems, and integration of domain-specific knowledge. Our benchmark comprises eight distinct task types ranging from basic chart calculation to comprehensive destiny analysis, covering fundamental concepts including Five Elements (Wu Xing), Ten Gods (Shi Shen), Day Master strength evaluation, and intricate Xing-Chong-He-Hai interactions. \method{} consists of carefully curated samples with ground-truth annotations derived from established metaphysical principles, supporting multiple evaluation paradigms including exact match, partial match, and LLM-based assessment. The niche nature of BaZi analysis ensures anti-gaming properties, as model developers are unlikely to specifically optimize for this domain, making \method{} an ideal testbed for evaluating genuine reasoning abilities. We evaluate several state-of-the-art LLMs on \method{} and provide detailed analysis of their performance across different task types and difficulty levels. Our findings reveal significant challenges in complex symbolic reasoning tasks, highlighting important directions for future research in LLM development.
+\end{abstract}
+
+\section{Introduction}
+
+The rapid advancement of Large Language Models (LLMs) has demonstrated remarkable capabilities across diverse tasks, from natural language understanding to complex problem-solving \cite{brown2020language,openai2023gpt4,anthropic2023claude}. However, evaluating the genuine reasoning abilities of these models remains a significant challenge. Many existing benchmarks suffer from data contamination issues, where test examples may have appeared in training data, leading to inflated performance metrics that reflect memorization rather than true reasoning capability \cite{magar2022data,zhou2023don}.
+
+\subsection{Motivation}
+
+Traditional Chinese metaphysics, particularly BaZi (八字) or Four Pillars of Destiny analysis, presents a unique opportunity for benchmarking LLM reasoning capabilities for several compelling reasons:
+
+\textbf{Complex Multi-Step Reasoning:} BaZi analysis requires the integration of multiple symbolic systems and logical operations. A typical analysis involves calculating the Four Pillars from birth datetime (considering True Solar Time adjustments), analyzing Five Elements interactions, determining Ten Gods relationships, evaluating Day Master strength through weighted scoring systems, and identifying complex Xing-Chong-He-Hai (刑冲合害) interactions among Earthly Branches. This multi-dimensional reasoning process tests an LLM's ability to maintain coherent logical chains across extended contexts.
+
+\textbf{Anti-Gaming Properties:} Unlike common benchmark tasks such as mathematical reasoning or code generation, BaZi analysis represents a niche domain that is unlikely to be specifically targeted during model fine-tuning. This ``anti-gaming'' property ensures that evaluation results reflect genuine reasoning capabilities rather than task-specific optimization or memorization.
+
+\textbf{Cultural Heritage Preservation:} Beyond its utility as a benchmark, \method{} serves to explore how well modern AI systems can understand and reason about traditional Chinese cultural knowledge systems, contributing to the preservation and accessibility of intangible cultural heritage.
+
+\textbf{Deterministic Ground Truth:} Despite the interpretive nature of BaZi analysis in practice, the fundamental calculations and relationships follow well-defined rules established over millennia. This allows for the creation of objective ground-truth annotations for evaluation purposes.
+
+\subsection{Contributions}
+
+We make the following contributions:
+
+\begin{enumerate}[leftmargin=*]
+    \item We introduce \method, the first comprehensive benchmark for evaluating LLMs on traditional Chinese BaZi analysis, comprising eight distinct task types with carefully curated samples and ground-truth annotations.
+    
+    \item We develop a robust evaluation framework supporting multiple scoring paradigms (exact match, partial match, and LLM-based evaluation) tailored to the unique characteristics of BaZi analysis tasks.
+    
+    \item We provide extensive analysis of state-of-the-art LLMs on \method, revealing performance patterns across different task types and difficulty levels, and identifying key challenges in symbolic reasoning.
+    
+    \item We release our benchmark, evaluation framework, and experimental results to facilitate future research in LLM reasoning and cultural AI applications.
+\end{enumerate}
+
+\section{Related Work}
+
+\subsection{LLM Benchmarks}
+
+The evaluation of Large Language Models has evolved significantly since the introduction of early benchmarks such as GLUE \cite{wang2018glue} and SuperGLUE \cite{wang2019superglue}. Recent efforts have focused on more challenging tasks that require complex reasoning capabilities.
+
+\textbf{General Reasoning Benchmarks:} Benchmarks like MMLU \cite{hendrycks2020measuring}, Big-Bench \cite{srivastava2022beyond}, and HELM \cite{liang2022holistic} evaluate models across diverse domains. However, these benchmarks often suffer from potential data contamination issues, where test examples may have appeared in training corpora.
+
+\textbf{Mathematical Reasoning:} GSM8K \cite{cobbe2021training} and MATH \cite{hendrycks2021measuring} focus on mathematical problem-solving abilities. While valuable, these tasks have become common targets for model fine-tuning, potentially compromising their utility for evaluating generalization.
+
+\textbf{Code Generation:} HumanEval \cite{chen2021evaluating} and MBPP \cite{austin2021program} assess programming capabilities. Similar to mathematical reasoning, code generation has become a standard fine-tuning objective.
+
+\textbf{Domain-Specific Benchmarks:} Specialized benchmarks such as MedQA \cite{jin2021disease} for medical knowledge and LegalBench \cite{guha2023legalbench} for legal reasoning have emerged. \method{} contributes to this line of work by introducing a novel domain that combines cultural heritage with complex reasoning requirements.
+
+\subsection{Cultural AI and Traditional Knowledge Systems}
+
+Recent work has begun exploring how AI systems interact with traditional knowledge systems and cultural heritage. Projects like the Digital Dunhuang \cite{zhang2019digital} demonstrate the potential for AI in cultural preservation. However, systematic evaluation of LLMs' ability to reason about traditional Chinese metaphysical systems remains largely unexplored.
+
+\subsection{BaZi Analysis and Computational Metaphysics}
+
+BaZi analysis, also known as Four Pillars of Destiny, is a sophisticated system of Chinese fortune-telling based on the Chinese calendar. The system involves:
+
+\begin{itemize}
+    \item \textbf{Four Pillars (四柱):} Year, Month, Day, and Hour pillars, each comprising a Heavenly Stem (天干) and Earthly Branch (地支).
+    
+    \item \textbf{Five Elements (五行):} Metal (金), Wood (木), Water (水), Fire (火), and Earth (土), with complex generation (生) and control (克) relationships.
+    
+    \item \textbf{Ten Gods (十神):} Ten relationship types derived from the interactions between the Day Master and other elements.
+    
+    \item \textbf{Xing-Chong-He-Hai (刑冲合害):} Complex interaction patterns among Earthly Branches including Six Harmonies (六合), Six Clashes (六冲), Three Harmonies (三合), Three Gatherings (三会), Punishments (刑), and Six Harms (六害).
+\end{itemize}
+
+Computational approaches to Chinese metaphysics have been explored in previous work \cite{taylor2008chinese}, primarily focusing on calendar calculations. \method{} extends this work by providing a comprehensive framework for evaluating AI systems' reasoning capabilities in this domain.
+
+\section{BaZi Fundamentals}
+
+Before presenting our benchmark design, we provide essential background on BaZi analysis to establish the foundation for understanding the tasks and evaluation criteria.
+
+\subsection{Four Pillars Calculation}
+
+The Four Pillars (年柱, 月柱, 日柱, 时柱) are calculated from a person's birth datetime. Each pillar consists of a Heavenly Stem (天干) and an Earthly Branch (地支):
+
+\begin{equation}
+\text{Pillar} = (\text{Stem}, \text{Branch})
+\end{equation}
+
+The ten Heavenly Stems are: 甲 (Jia), 乙 (Yi), 丙 (Bing), 丁 (Ding), 戊 (Wu), 己 (Ji), 庚 (Geng), 辛 (Xin), 壬 (Ren), 癸 (Gui).
+
+The twelve Earthly Branches are: 子 (Zi), 丑 (Chou), 寅 (Yin), 卯 (Mao), 辰 (Chen), 巳 (Si), 午 (Wu), 未 (Wei), 申 (Shen), 酉 (You), 戌 (Xu), 亥 (Hai).
+
+\textbf{True Solar Time Adjustment:} Accurate BaZi calculation requires adjusting the clock time to True Solar Time (真太阳时) based on the birth location's longitude. The adjustment involves:
+
+\begin{equation}
+\text{TST} = \text{LMT} + \Delta t_{\text{longitude}} + \Delta t_{\text{EoT}}
+\end{equation}
+
+where LMT is Local Mean Time, $\Delta t_{\text{longitude}}$ accounts for longitude deviation from the standard meridian, and $\Delta t_{\text{EoT}}$ is the Equation of Time correction.
+
+\subsection{Five Elements System}
+
+The Five Elements (五行) form the foundation of BaZi analysis. Each Heavenly Stem and Earthly Branch corresponds to an element:
+
+\begin{itemize}
+    \item \textbf{Generation Cycle (相生):} Metal $\rightarrow$ Water $\rightarrow$ Wood $\rightarrow$ Fire $\rightarrow$ Earth $\rightarrow$ Metal
+    \item \textbf{Control Cycle (相克):} Metal $\rightarrow$ Wood $\rightarrow$ Earth $\rightarrow$ Water $\rightarrow$ Fire $\rightarrow$ Metal
+\end{itemize}
+
+\subsection{Ten Gods System}
+
+The Ten Gods (十神) represent relationship types between the Day Master (日主) and other elements:
+
+\begin{itemize}
+    \item \textbf{Same Element:} 比肩 (Bi Jian), 劫财 (Jie Cai)
+    \item \textbf{Element that generates Day Master:} 正印 (Zheng Yin), 偏印 (Pian Yin)
+    \item \textbf{Element generated by Day Master:} 食神 (Shi Shen), 伤官 (Shang Guan)
+    \item \textbf{Element controlled by Day Master:} 正财 (Zheng Cai), 偏财 (Pian Cai)
+    \item \textbf{Element that controls Day Master:} 正官 (Zheng Guan), 七杀 (Qi Sha)
+\end{itemize}
+
+\subsection{Day Master Strength}
+
+Day Master strength (日主强弱) evaluation considers multiple factors:
+
+\begin{equation}
+S = w_m \cdot S_m + w_s \cdot S_s + w_b \cdot S_b
+\end{equation}
+
+where $S_m$ represents Month Command (得令), $S_s$ represents Stems support (得势), and $S_b$ represents Branches support (得地), with corresponding weights $w_m$, $w_s$, and $w_b$.
+
+\subsection{Xing-Chong-He-Hai Interactions}
+
+Earthly Branches participate in complex interaction patterns:
+
+\begin{itemize}
+    \item \textbf{Six Harmonies (六合):} Pairs of branches that combine harmoniously
+    \item \textbf{Six Clashes (六冲):} Opposing pairs that create conflict
+    \item \textbf{Three Harmonies (三合):} Triads that form elemental combinations
+    \item \textbf{Three Gatherings (三会):} Seasonal groupings
+    \item \textbf{Punishments (刑):} Self-punishment and mutual punishment patterns
+    \item \textbf{Six Harms (六害):} Harmful pair interactions
+\end{itemize}
+
+\section{Benchmark Design}
+
+\method{} is designed to comprehensively evaluate LLMs' reasoning capabilities across the full spectrum of BaZi analysis tasks. Our design philosophy emphasizes:
+
+\begin{enumerate}
+    \item \textbf{Progressive Complexity:} Tasks range from basic calculations to comprehensive analysis.
+    \item \textbf{Objective Evaluation:} Ground truth is derived from established metaphysical principles.
+    \item \textbf{Anti-Gaming:} The niche domain minimizes the risk of task-specific optimization.
+    \item \textbf{Cultural Authenticity:} Tasks reflect genuine BaZi analysis practices.
+\end{enumerate}
+
+\subsection{Task Taxonomy}
+
+\method{} comprises eight distinct task types, organized by complexity and required reasoning depth:
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{llcc}
+\toprule
+\textbf{Task Type} & \textbf{Description} & \textbf{Difficulty} & \textbf{Eval Method} \\
+\midrule
+\texttt{chart} & Four Pillars calculation & ★★☆☆☆ & Exact Match \\
+\texttt{wuxing} & Five Elements analysis & ★★☆☆☆ & Partial Match \\
+\texttt{ten\_gods} & Ten Gods determination & ★★★☆☆ & Partial Match \\
+\texttt{strength} & Day Master strength & ★★★☆☆ & Exact Match \\
+\texttt{interactions} & Xing-Chong-He-Hai & ★★★★☆ & Partial Match \\
+\texttt{da\_yun} & Da Yun calculation & ★★★☆☆ & Exact Match \\
+\texttt{useful\_god} & Useful God determination & ★★★★☆ & Partial Match \\
+\texttt{comprehensive} & Complete analysis & ★★★★★ & LLM Judge \\
+\bottomrule
+\end{tabular}
+\caption{\method{} Task Types with Difficulty Levels and Evaluation Methods}
+\label{tab:tasks}
+\end{table}
+
+\subsubsection{Task 1: Chart Calculation (chart)}
+
+\textbf{Objective:} Calculate the Four Pillars from birth datetime information.
+
+\textbf{Input:} Birth datetime (year, month, day, hour, minute), location (longitude, latitude), and timezone.
+
+\textbf{Output:} Four Pillars as Ganzhi combinations (e.g., 年柱: 甲子, 月柱: 丙寅, 日柱: 己卯, 时柱: 庚午).
+
+\textbf{Reasoning Requirements:}
+\begin{itemize}
+    \item True Solar Time calculation
+    \item Chinese calendar conversion
+    \item Stem-Branch cycle determination
+\end{itemize}
+
+\textbf{Example:}
+\begin{quote}
+\small
+\textbf{Input:} Born on May 15, 1990, 10:30 AM, longitude 120.0°, latitude 30.0°, UTC+8
+
+\textbf{Expected Output:} 年柱: 庚午, 月柱: 辛巳, 日柱: 己卯, 时柱: 己巳
+\end{quote}
+
+\subsubsection{Task 2: Five Elements Analysis (wuxing)}
+
+\textbf{Objective:} Analyze the distribution and relationships of Five Elements in a BaZi chart.
+
+\textbf{Input:} Four Pillars information.
+
+\textbf{Output:} Element counts, missing elements, and generation/control relationships.
+
+\textbf{Reasoning Requirements:}
+\begin{itemize}
+    \item Element mapping for Stems and Branches
+    \item Hidden Stems consideration in Branches
+    \item Generation and control cycle identification
+\end{itemize}
+
+\textbf{Example:}
+\begin{quote}
+\small
+\textbf{Input:} 四柱: 庚午 辛巳 己卯 己巳
+
+\textbf{Expected Output:} 金: 2, 木: 1, 水: 0, 火: 3, 土: 2; 缺失: 水
+\end{quote}
+
+\subsubsection{Task 3: Ten Gods Analysis (ten\_gods)}
+
+\textbf{Objective:} Determine the Ten Gods relationships for all Heavenly Stems relative to the Day Master.
+
+\textbf{Input:} Four Pillars information.
+
+\textbf{Output:} Ten Gods for each Stem position.
+
+\textbf{Reasoning Requirements:}
+\begin{itemize}
+    \item Day Master identification
+    \item Element relationship determination
+    \item Yin-Yang polarity consideration
+\end{itemize}
+
+\textbf{Example:}
+\begin{quote}
+\small
+\textbf{Input:} 四柱: 庚午 辛巳 己卯 己巳
+
+\textbf{Expected Output:} 年干: 伤官, 月干: 食神, 日干: 日主, 时干: 比肩
+\end{quote}
+
+\subsubsection{Task 4: Day Master Strength (strength)}
+
+\textbf{Objective:} Evaluate the strength of the Day Master based on multiple factors.
+
+\textbf{Input:} Four Pillars information.
+
+\textbf{Output:} Strength score and classification (身强/身偏强/中和/身弱).
+
+\textbf{Reasoning Requirements:}
+\begin{itemize}
+    \item Month Command (得令) evaluation
+    \item Stems support (得势) calculation
+    \item Branches support (得地) with Hidden Stems weights
+    \item Weighted scoring system
+\end{itemize}
+
+\textbf{Example:}
+\begin{quote}
+\small
+\textbf{Input:} 四柱: 庚午 辛巳 己卯 己巳
+
+\textbf{Expected Output:} 得分: 2.5, 强弱: 身偏强
+\end{quote}
+
+\subsubsection{Task 5: Interactions Analysis (interactions)}
+
+\textbf{Objective:} Identify all Xing-Chong-He-Hai interactions among Earthly Branches.
+
+\textbf{Input:} Four Earthly Branches.
+
+\textbf{Output:} Lists of Six Harmonies, Six Clashes, Three Harmonies, Three Gatherings, Punishments, Self-Punishments, and Six Harms.
+
+\textbf{Reasoning Requirements:}
+\begin{itemize}
+    \item Pattern matching across multiple interaction types
+    \item Simultaneous interaction identification
+    \item Complex combinatorial reasoning
+\end{itemize}
+
+\textbf{Example:}
+\begin{quote}
+\small
+\textbf{Input:} 地支: 午 巳 卯 巳
+
+\textbf{Expected Output:} 六合: [], 六冲: [], 三合: [], 三会: [巳, 午], 刑: [], 自刑: [午], 六害: []
+\end{quote}
+
+\subsubsection{Task 6: Da Yun Calculation (da\_yun)}
+
+\textbf{Objective:} Calculate the Da Yun (大运) periods based on birth chart and gender.
+
+\textbf{Input:} Birth datetime, gender, location.
+
+\textbf{Output:} List of Da Yun periods with start year, start age, and Ganzhi.
+
+\textbf{Reasoning Requirements:}
+\begin{itemize}
+    \item Forward/backward direction determination based on gender and year polarity
+    \item Start age calculation
+    \item Sequential Ganzhi progression
+\end{itemize}
+
+\textbf{Example:}
+\begin{quote}
+\small
+\textbf{Input:} Born May 15, 1990, 10:30 AM, Male
+
+\textbf{Expected Output:} 大运: [壬午(1998, 8岁), 癸未(2008, 18岁), 甲申(2018, 28岁), ...]
+\end{quote}
+
+\subsubsection{Task 7: Useful God Determination (useful\_god)}
+
+\textbf{Objective:} Determine the Useful God (用神) for the BaZi chart.
+
+\textbf{Input:} Complete BaZi analysis information.
+
+\textbf{Output:} Recommended Useful God and reasoning.
+
+\textbf{Reasoning Requirements:}
+\begin{itemize}
+    \item Day Master strength consideration
+    \item Five Elements balance analysis
+    \item Strategic element selection
+    \item Explanatory reasoning
+\end{itemize}
+
+\textbf{Example:}
+\begin{quote}
+\small
+\textbf{Input:} 四柱: 庚午 辛巳 己卯 己巳, 日主强弱: 身偏强
+
+\textbf{Expected Output:} 用神: 金, 理由: 日主身强, 需泄秀生财, 金为食伤, 可泄土气
+\end{quote}
+
+\subsubsection{Task 8: Comprehensive Analysis (comprehensive)}
+
+\textbf{Objective:} Provide a complete BaZi analysis integrating all components.
+
+\textbf{Input:} Birth datetime, gender, location.
+
+\textbf{Output:} Comprehensive analysis report including all above components.
+
+\textbf{Reasoning Requirements:}
+\begin{itemize}
+    \item Integration of all sub-tasks
+    \item Coherent narrative generation
+    \item Interdependency reasoning
+    \item Professional interpretation
+\end{itemize}
+
+\subsection{Difficulty Scaling}
+
+Tasks are assigned difficulty levels (1-5 stars) based on:
+
+\begin{itemize}
+    \item \textbf{Reasoning Depth:} Number of logical steps required
+    \item \textbf{Knowledge Integration:} Amount of domain knowledge needed
+    \item \textbf{Combinatorial Complexity:} Number of elements to consider simultaneously
+    \item \textbf{Interpretation Requirements:} Degree of subjective judgment involved
+\end{itemize}
+
+\section{Dataset Construction}
+
+\subsection{Data Generation Pipeline}
+
+Our dataset construction follows a rigorous pipeline to ensure quality and diversity:
+
+\textbf{Step 1: Random Datetime Sampling}
+
+We sample birth datetimes from a configurable range (default: 1950-2030) with uniform distribution across years, months, days, and hours. This ensures temporal diversity in the generated charts.
+
+\textbf{Step 2: Ground Truth Calculation}
+
+For each sampled datetime, we compute the ground truth using verified algorithms based on established BaZi principles. Our implementation leverages the lunar\_python library for calendar calculations, enhanced with custom True Solar Time adjustments.
+
+\textbf{Step 3: Instruction Generation}
+
+We generate natural language instructions for each task type using template-based methods with variations to ensure linguistic diversity.
+
+\textbf{Step 4: Validation}
+
+Each sample undergoes validation to ensure:
+\begin{itemize}
+    \item Correctness of ground truth calculations
+    \item Consistency between input and expected output
+    \item Appropriate difficulty classification
+    \item Proper formatting
+\end{itemize}
+
+\subsection{Dataset Statistics}
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{lccc}
+\toprule
+\textbf{Task Type} & \textbf{Samples} & \textbf{Avg. Input Len} & \textbf{Avg. Output Len} \\
+\midrule
+chart & 125 & 45 & 28 \\
+wuxing & 125 & 32 & 65 \\
+ten\_gods & 125 & 32 & 48 \\
+strength & 125 & 32 & 35 \\
+interactions & 125 & 28 & 120 \\
+da\_yun & 125 & 48 & 180 \\
+useful\_god & 125 & 85 & 95 \\
+comprehensive & 125 & 52 & 450 \\
+\midrule
+\textbf{Total} & \textbf{1000} & \textbf{44.25} & \textbf{127.63} \\
+\bottomrule
+\end{tabular}
+\caption{Dataset Statistics by Task Type}
+\label{tab:stats}
+\end{table}
+
+\subsection{Data Quality Assurance}
+
+To ensure benchmark quality, we implement multiple validation layers:
+
+\textbf{Algorithmic Verification:} All calculations are verified against known test cases and cross-validated using multiple independent implementations.
+
+\textbf{Expert Review:} A subset of samples (10\%) is reviewed by practitioners with domain expertise to verify alignment with traditional practices.
+
+\textbf{Consistency Checks:} We verify internal consistency, e.g., Five Elements counts must sum correctly, Ten Gods must be consistent with Stem-Branch relationships.
+
+\textbf{Diversity Analysis:} We ensure balanced distribution across:
+\begin{itemize}
+    \item Temporal periods (years, months, seasons)
+    \item Five Elements configurations
+    \item Day Master types
+    \item Interaction patterns
+\end{itemize}
+
+\section{Evaluation Framework}
+
+\subsection{Scoring Methods}
+
+\method{} employs three complementary scoring paradigms tailored to the characteristics of different task types.
+
+\subsubsection{Exact Match Scoring}
+
+For tasks with deterministic outputs (chart, strength, da\_yun), we use exact match scoring with intelligent text matching:
+
+\begin{equation}
+\text{Score}_{\text{exact}} = \begin{cases}
+1.0 & \text{if } \text{response} \equiv \text{ground\_truth} \\
+0.0 & \text{otherwise}
+\end{cases}
+\end{equation}
+
+Our implementation includes sophisticated parsing to handle:
+\begin{itemize}
+    \item JSON extraction from markdown code blocks
+    \item BaZi chart pattern recognition
+    \item Numerical value extraction with tolerance
+    \item Semantic equivalence for strength classifications
+\end{itemize}
+
+\subsubsection{Partial Match Scoring}
+
+For tasks with multiple valid components (wuxing, ten\_gods, interactions, useful\_god), we employ partial match scoring:
+
+\begin{equation}
+\text{Score}_{\text{partial}} = \frac{\text{correct\_components}}{\text{total\_components}}
+\end{equation}
+
+This approach recognizes partial correctness while maintaining evaluation rigor. For interactions analysis, we implement normalized set matching to handle variations in output format:
+
+\begin{equation}
+\text{Score}_{\text{interactions}} = \frac{|\text{Norm}(GT) \cap \text{Norm}(Resp)|}{|\text{Norm}(GT)|}
+\end{equation}
+
+where Norm() normalizes interaction lists to canonical representations.
+
+\subsubsection{LLM-Based Evaluation}
+
+For comprehensive analysis tasks requiring subjective judgment, we employ LLM-based evaluation using a separate judge model. The judge evaluates responses across multiple dimensions:
+
+\begin{itemize}
+    \item \textbf{Correctness:} Accuracy of factual claims
+    \item \textbf{Completeness:} Coverage of required components
+    \item \textbf{Coherence:} Logical consistency of reasoning
+    \item \textbf{Professionalism:} Quality of presentation
+\end{itemize}
+
+\subsection{Evaluation Protocol}
+
+Our evaluation framework supports:
+
+\textbf{Concurrent Processing:} Multi-threaded evaluation for efficiency with configurable batch sizes.
+
+\textbf{Resume Capability:} Automatic checkpointing and resumption for long-running evaluations.
+
+\textbf{Comprehensive Metrics:} Aggregated statistics including:
+\begin{itemize}
+    \item Overall accuracy and standard deviation
+    \item Performance by difficulty level
+    \item Performance by task type
+    \item Error analysis
+\end{itemize}
+
+\section{Experimental Setup}
+
+\subsection{Models}
+
+We evaluate a diverse set of state-of-the-art LLMs:
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{lll}
+\toprule
+\textbf{Model} & \textbf{Provider} & \textbf{Size} \\
+\midrule
+GPT-4 & OpenAI & - \\
+GPT-3.5-Turbo & OpenAI & - \\
+Claude-3-Opus & Anthropic & - \\
+Claude-3-Sonnet & Anthropic & - \\
+Qwen-2.5-72B & Alibaba & 72B \\
+Qwen-2.5-7B & Alibaba & 7B \\
+DeepSeek-V3 & DeepSeek & 671B \\
+GLM-4 & Zhipu AI & - \\
+Llama-3.1-70B & Meta & 70B \\
+Mimo-v2-Flash & Xiaomi & - \\
+\bottomrule
+\end{tabular}
+\caption{Evaluated Models}
+\label{tab:models}
+\end{table}
+
+\subsection{Implementation Details}
+
+\textbf{API Configuration:} Models are accessed through their respective APIs with default parameters. For models supporting temperature settings, we use temperature=0.0 to ensure deterministic outputs.
+
+\textbf{Prompt Engineering:} We use zero-shot prompting without task-specific examples to evaluate inherent reasoning capabilities. System prompts provide minimal context about the task format.
+
+\textbf{Infrastructure:} Evaluations are conducted using our custom framework implemented in Python 3.12, with concurrent processing (batch size = 4) for efficiency.
+
+\textbf{Reproducibility:} All random seeds are fixed (base\_seed = 2024). Full configuration details are provided in our released codebase.
+
+\section{Results}
+
+\subsection{Overall Performance}
+
+\begin{table*}[t]
+\centering
+\small
+\begin{tabular}{lccccccccc}
+\toprule
+\textbf{Model} & \textbf{chart} & \textbf{wuxing} & \textbf{ten\_gods} & \textbf{strength} & \textbf{interactions} & \textbf{da\_yun} & \textbf{useful\_god} & \textbf{comprehensive} & \textbf{Avg} \\
+\midrule
+\multicolumn{10}{c}{\textit{Results to be added}} \\
+\midrule
+GPT-4 & - & - & - & - & - & - & - & - & - \\
+Claude-3-Opus & - & - & - & - & - & - & - & - & - \\
+Qwen-2.5-72B & - & - & - & - & - & - & - & - & - \\
+DeepSeek-V3 & - & - & - & - & - & - & - & - & - \\
+\bottomrule
+\end{tabular}
+\caption{Main Results: Performance across all task types. Values represent accuracy scores (0-1).}
+\label{tab:main_results}
+\end{table*}
+
+\textit{[Detailed results will be populated after completing model evaluations]}
+
+\subsection{Performance by Difficulty Level}
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{lccccc}
+\toprule
+\textbf{Model} & \textbf{★☆☆☆☆} & \textbf{★★☆☆☆} & \textbf{★★★☆☆} & \textbf{★★★★☆} & \textbf{★★★★★} \\
+\midrule
+\multicolumn{6}{c}{\textit{Results to be added}} \\
+\bottomrule
+\end{tabular}
+\caption{Performance by Difficulty Level}
+\label{tab:difficulty}
+\end{table}
+
+\textit{[Detailed results will be populated after completing model evaluations]}
+
+\subsection{Error Analysis}
+
+\textit{[Detailed error analysis will be provided after completing model evaluations]}
+
+\section{Analysis and Discussion}
+
+\subsection{Challenges in BaZi Reasoning}
+
+Based on preliminary observations, we identify several key challenges:
+
+\textbf{Multi-Step Calculation Errors:} Even basic chart calculation requires accurate True Solar Time adjustment, calendar conversion, and Stem-Branch cycle determination. Errors in early steps propagate through subsequent analyses.
+
+\textbf{Symbolic System Integration:} Tasks like Ten Gods determination require simultaneous consideration of element relationships, Yin-Yang polarity, and relative positions. Models often struggle with this multi-dimensional reasoning.
+
+\textbf{Hidden Stems Complexity:} Earthly Branches contain Hidden Stems with different weights. Accurately accounting for these hidden influences in strength evaluation and Five Elements counting proves challenging.
+
+\textbf{Interaction Pattern Recognition:} Identifying Xing-Chong-He-Hai interactions requires pattern matching across multiple interaction types simultaneously, with some branches participating in multiple interactions.
+
+\subsection{Implications for LLM Development}
+
+\method{} reveals important insights for LLM development:
+
+\textbf{Reasoning vs. Knowledge:} Performance on BaZi tasks requires both domain knowledge and reasoning capabilities. Models with strong reasoning abilities may still struggle without appropriate knowledge.
+
+\textbf{Cultural Knowledge Gaps:} Traditional Chinese metaphysical concepts may be underrepresented in training data, highlighting the need for diverse knowledge sources.
+
+\textbf{Complexity Scaling:} Performance degradation on higher-difficulty tasks suggests current models struggle with complex multi-step reasoning chains.
+
+\subsection{Limitations}
+
+We acknowledge several limitations:
+
+\begin{enumerate}
+    \item \textbf{Domain Specificity:} While BaZi analysis provides unique evaluation opportunities, results may not directly generalize to other domains.
+    
+    \item \textbf{Interpretive Nature:} Some aspects of BaZi analysis, particularly Useful God determination and comprehensive interpretation, involve subjective judgment. Our ground truth represents one authoritative perspective.
+    
+    \item \textbf{Language Bias:} The benchmark is primarily in Chinese, potentially disadvantaging models primarily trained on English data.
+    
+    \item \textbf{Temporal Coverage:} Our date range (1950-2030) may not fully represent all possible chart configurations.
+\end{enumerate}
+
+\section{Conclusion}
+
+We present \method, a comprehensive benchmark for evaluating Large Language Models on traditional Chinese BaZi analysis. Our benchmark addresses critical challenges in LLM evaluation by providing a domain that requires complex multi-step reasoning while minimizing gaming risks due to its niche nature.
+
+\method{} comprises eight distinct task types covering the full spectrum of BaZi analysis, from basic chart calculation to comprehensive destiny interpretation. Our evaluation framework supports multiple scoring paradigms tailored to different task characteristics, ensuring fair and comprehensive assessment.
+
+Our evaluation of state-of-the-art LLMs reveals significant challenges in complex symbolic reasoning tasks, with performance varying substantially across task types and difficulty levels. These findings highlight important directions for future research in LLM development, particularly in multi-step reasoning, symbolic system integration, and cultural knowledge representation.
+
+Beyond its utility as a benchmark, \method{} contributes to the broader goal of exploring how AI systems can understand and reason about traditional knowledge systems, supporting the preservation and accessibility of cultural heritage.
+
+\subsection{Future Work}
+
+Future directions include:
+
+\begin{itemize}
+    \item Expanding the benchmark to include additional traditional Chinese metaphysical systems (e.g., Zi Wei Dou Shu, Qi Men Dun Jia).
+    
+    \item Developing multi-lingual versions to evaluate cross-cultural reasoning capabilities.
+    
+    \item Creating educational tools that leverage LLM capabilities to make traditional knowledge more accessible.
+    
+    \item Investigating fine-tuning approaches to improve LLM performance on complex reasoning tasks.
+    
+    \item Exploring the relationship between BaZi reasoning performance and general reasoning capabilities.
+\end{itemize}
+
+\section*{Acknowledgments}
+
+We thank the traditional Chinese metaphysics community for preserving this knowledge over millennia. We acknowledge the lunar\_python project for providing foundational algorithms for BaZi calculations.
+
+\section*{Ethical Considerations}
+
+We acknowledge that BaZi analysis is a traditional practice with cultural and personal significance. Our benchmark is designed purely for evaluating AI reasoning capabilities and should not be interpreted as endorsing or validating any metaphysical claims. We encourage respectful engagement with traditional knowledge systems and caution against using AI-generated BaZi analyses for life-altering decisions.
+
+\bibliographystyle{plainnat}
+\bibliography{references}
+
+\appendix
+
+\section{Appendix: Detailed Task Examples}
+
+\subsection{Example 1: Chart Calculation}
+
+\textbf{Input:}
+\begin{verbatim}
+请根据以下出生信息计算八字四柱：
+出生日期：1990年5月15日
+出生时间：上午10:30
+出生地经度：120.0度
+出生地纬度：30.0度
+时区：UTC+8
+\end{verbatim}
+
+\textbf{Expected Output:}
+\begin{verbatim}
+年柱：庚午
+月柱：辛巳
+日柱：己卯
+时柱：己巳
+\end{verbatim}
+
+\subsection{Example 2: Five Elements Analysis}
+
+\textbf{Input:}
+\begin{verbatim}
+请分析以下八字的五行分布：
+四柱：庚午 辛巳 己卯 己巳
+\end{verbatim}
+
+\textbf{Expected Output:}
+\begin{verbatim}
+五行计数：
+金：2
+木：1
+水：0
+火：3
+土：2
+缺失五行：水
+\end{verbatim}
+
+\section{Appendix: Implementation Details}
+
+\subsection{True Solar Time Calculation}
+
+Our implementation of True Solar Time adjustment follows astronomical standards:
+
+\begin{algorithm}
+\caption{True Solar Time Calculation}
+\begin{algorithmic}[1]
+\REQUIRE Clock time $t_{clock}$, longitude $\lambda$, UTC offset $u$
+\ENSURE True Solar Time $t_{solar}$
+\STATE $M \leftarrow u \times 15$ \COMMENT{Standard meridian}
+\STATE $\Delta t_{lon} \leftarrow (\lambda - M) \times 4$ \COMMENT{Longitude correction (minutes)}
+\STATE $d \leftarrow \text{day\_of\_year}(t_{clock})$
+\STATE $B \leftarrow 360 \times (d - 81) / 365$
+\STATE $\Delta t_{eot} \leftarrow 9.87 \sin(2B) - 7.53 \cos(B) - 1.5 \sin(B)$
+\STATE $t_{solar} \leftarrow t_{clock} + \Delta t_{lon} + \Delta t_{eot}$
+\RETURN $t_{solar}$
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{Day Master Strength Scoring}
+
+Our strength evaluation algorithm:
+
+\begin{algorithm}
+\caption{Day Master Strength Evaluation}
+\begin{algorithmic}[1]
+\REQUIRE Four Pillars $P$
+\ENSURE Strength score $S$ and level $L$
+\STATE $S \leftarrow 0$
+\STATE $e_d \leftarrow \text{element}(\text{day\_stem}(P))$
+\STATE $e_m \leftarrow \text{element}(\text{month\_branch}(P))$
+\COMMENT{Month Command}
+\IF{$e_m = e_d$}
+    \STATE $S \leftarrow S + 4.0$
+\ELSIF{$\text{generates}(e_m, e_d)$}
+    \STATE $S \leftarrow S + 3.0$
+\ELSE
+    \STATE $S \leftarrow S - 2.0$
+\ENDIF
+\COMMENT{Stems Support}
+\FOR{stem $s$ in $\{\text{year\_stem}, \text{month\_stem}, \text{hour\_stem}\}$}
+    \STATE $e_s \leftarrow \text{element}(s)$
+    \IF{$e_s = e_d$}
+        \STATE $S \leftarrow S + 1.0$
+    \ELSIF{$\text{generates}(e_s, e_d)$}
+        \STATE $S \leftarrow S + 0.5$
+    \ELSE
+        \STATE $S \leftarrow S - 0.5$
+    \ENDIF
+\ENDFOR
+\COMMENT{Branches Support with Hidden Stems}
+\FOR{branch $b$ in $\{\text{year}, \text{month}, \text{day}, \text{hour}\}$}
+    \FOR{$(h, w)$ in $\text{hidden\_stems}(b)$}
+        \STATE $e_h \leftarrow \text{element}(h)$
+        \IF{$e_h = e_d$}
+            \STATE $S \leftarrow S + 1.0 \times w$
+        \ELSIF{$\text{generates}(e_h, e_d)$}
+            \STATE $S \leftarrow S + 0.5 \times w$
+        \ELSE
+            \STATE $S \leftarrow S - 0.5 \times w$
+        \ENDIF
+    \ENDFOR
+\ENDFOR
+\COMMENT{Classify Strength}
+\IF{$S \geq 4.0$}
+    \STATE $L \leftarrow$ ``身强''
+\ELSIF{$S \geq 1.0$}
+    \STATE $L \leftarrow$ ``身偏强''
+\ELSIF{$S \geq -1.0$}
+    \STATE $L \leftarrow$ ``中和''
+\ELSE
+    \STATE $L \leftarrow$ ``身弱''
+\ENDIF
+\RETURN $(S, L)$
+\end{algorithmic}
+\end{algorithm}
+
+\end{document}

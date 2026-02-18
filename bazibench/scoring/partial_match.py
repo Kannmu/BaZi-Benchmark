@@ -14,42 +14,73 @@ class PartialMatchScorer(ExactMatchScorer):
         if parsed_response is None:
             return 0.0
             
-        if isinstance(parsed_ground_truth, dict):
-            if not isinstance(parsed_response, dict):
+        return self._recursive_score(parsed_ground_truth, parsed_response)
+
+    def _recursive_score(self, gt: Any, resp: Any) -> float:
+        if isinstance(gt, dict):
+            # Special handling for strength if resp is string
+            if isinstance(resp, str) and ("level" in gt or "score" in gt):
+                # Try to extract level from string
+                extracted_level = self._extract_level_from_text(resp)
+                if extracted_level and "level" in gt:
+                    # Construct a temporary dict for comparison
+                    resp = {"level": extracted_level}
+                else:
+                    return 0.0
+
+            if not isinstance(resp, dict):
                 return 0.0
                 
-            correct_count = 0
-            total_count = len(parsed_ground_truth)
+            correct_count = 0.0
+            total_count = len(gt)
             
-            for key, gt_value in parsed_ground_truth.items():
-                if key not in parsed_response:
-                    continue
-                    
-                resp_value = parsed_response[key]
+            for key, gt_val in gt.items():
+                # Key normalization (e.g. wood -> 木)
+                resp_key = key
+                if key not in resp:
+                    # check aliases
+                    aliases = {
+                        "木": "wood", "火": "fire", "土": "earth", "金": "metal", "水": "water",
+                        "wood": "木", "fire": "火", "earth": "土", "metal": "金", "water": "水"
+                    }
+                    if aliases.get(key) in resp:
+                        resp_key = aliases[key]
+                    else:
+                        continue # Key missing, 0 points for this key
                 
-                # Special handling for interactions (lists of lists)
-                if isinstance(gt_value, list) and isinstance(resp_value, list):
-                    score = self._match_interactions(key, gt_value, resp_value)
-                    correct_count += score
+                resp_val = resp[resp_key]
                 
-                # Soft matching for strings (strength, useful_god)
-                elif self._match_value(key, gt_value, resp_value):
-                    correct_count += 1
-                    
-                # Standard equality check for other types
-                elif gt_value == resp_value:
-                    correct_count += 1
+                # Recursive step
+                if isinstance(gt_val, dict):
+                     correct_count += self._recursive_score(gt_val, resp_val)
+                elif isinstance(gt_val, list):
+                     correct_count += self._match_interactions(key, gt_val, resp_val)
+                else:
+                     # Value matching
+                     if self._match_value(key, gt_val, resp_val):
+                         correct_count += 1
+                     elif gt_val == resp_val:
+                         correct_count += 1
             
             return correct_count / total_count if total_count > 0 else 0.0
             
-        elif isinstance(parsed_ground_truth, list):
-             if not isinstance(parsed_response, list):
+        elif isinstance(gt, list):
+             if not isinstance(resp, list):
                  return 0.0
              
-             return self._match_interactions("list", parsed_ground_truth, parsed_response)
+             return self._match_interactions("list", gt, resp)
              
         else:
-            return 1.0 if str(parsed_response).strip() == str(parsed_ground_truth).strip() else 0.0
+            return 1.0 if str(resp).strip() == str(gt).strip() else 0.0
+
+    def _extract_level_from_text(self, text: str) -> Union[str, None]:
+        if "身强" in text or "身旺" in text or "偏强" in text:
+            return "身强"
+        if "身弱" in text or "偏弱" in text:
+            return "身弱"
+        if "中和" in text:
+            return "中和"
+        return None
 
     def _match_interactions(self, key: str, gt_list: List, resp_list: List) -> float:
         """Handle interactions matching with normalization"""
@@ -108,6 +139,11 @@ class PartialMatchScorer(ExactMatchScorer):
         """Soft match for values"""
         if gt_val == resp_val:
             return True
+            
+        # Float comparison with tolerance
+        if isinstance(gt_val, (int, float)) and isinstance(resp_val, (int, float)):
+             if abs(gt_val - resp_val) < 0.1: # Tolerance
+                 return True
             
         if isinstance(gt_val, str) and isinstance(resp_val, str):
             # Strength

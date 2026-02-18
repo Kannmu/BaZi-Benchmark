@@ -6,7 +6,7 @@ from typing import List, Dict, Any, Optional, Union
 from tqdm import tqdm
 from ..models.base import ModelBase
 from ..dataset.schema import BaziSample
-from ..scoring import ExactMatchScorer, PartialMatchScorer
+from ..scoring import ExactMatchScorer, PartialMatchScorer, LLMJudgeScorer
 
 # Try to import numpy, if not available, use simple python implementation
 try:
@@ -16,7 +16,7 @@ except ImportError:
     HAS_NUMPY = False
 
 class Evaluator:
-    def __init__(self, model: ModelBase, output_dir: str):
+    def __init__(self, model: ModelBase, output_dir: str, judge_model: Optional[ModelBase] = None):
         self.model = model
         self.output_dir = output_dir
         os.makedirs(output_dir, exist_ok=True)
@@ -26,6 +26,9 @@ class Evaluator:
             'exact_match': ExactMatchScorer(),
             'partial_match': PartialMatchScorer(),
         }
+        
+        if judge_model:
+            self.scorers['llm_judge'] = LLMJudgeScorer(judge_model)
         
     def evaluate(self, samples: Union[List[BaziSample], str], batch_size: int = 1) -> List[Dict]:
         """
@@ -102,7 +105,9 @@ class Evaluator:
             
             # Heuristic for old data or missing evaluation_type
             if not eval_type or eval_type not in self.scorers:
-                if "ten_gods" in sample.tags or "interactions" in sample.tags or "wuxing" in sample.tags:
+                if "comprehensive" in sample.tags and "llm_judge" in self.scorers:
+                     eval_type = 'llm_judge'
+                elif any(tag in sample.tags for tag in ["ten_gods", "interactions", "wuxing", "strength"]):
                      eval_type = 'partial_match'
                 else:
                      eval_type = 'exact_match'

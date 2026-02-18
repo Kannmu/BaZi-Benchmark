@@ -58,6 +58,7 @@ def main():
     parser.add_argument("--batch-size", type=int, default=1, help="并发数")
     parser.add_argument("--output-dir", type=str, default=None, help="输出目录")
     parser.add_argument("--config", type=str, default=None, help="模型配置文件路径")
+    parser.add_argument("--judge-model", type=str, default="qwen/qwen3.5-plus", help="评判模型名称")
     
     args = parser.parse_args()
     
@@ -82,13 +83,20 @@ def main():
     except Exception as e:
         print(f"模型初始化失败: {e}")
         sys.exit(1)
+        
+    judge_model = None
+    try:
+        judge_model = registry.get_model(args.judge_model)
+        print(f"初始化评判模型: {args.judge_model}")
+    except Exception as e:
+        print(f"评判模型初始化失败: {e}，将不使用 LLM Judge")
     
     print(f"输出目录: {output_dir}")
     print(f"并发数: {args.batch_size}")
     print(f"开始时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print("-" * 50)
     
-    evaluator = Evaluator(model=model, output_dir=output_dir)
+    evaluator = Evaluator(model=model, output_dir=output_dir, judge_model=judge_model)
     
     results = evaluator.evaluate(samples, batch_size=args.batch_size)
     

@@ -22,13 +22,23 @@ class LLMJudgeScorer(BaseScorer):
             return 0.0
         
     def _build_judge_prompt(self, ground_truth: Any, response: Any) -> str:
+        import json
+        
+        def format_content(content):
+            if isinstance(content, (dict, list)):
+                return json.dumps(content, ensure_ascii=False, indent=2)
+            return str(content)
+            
+        gt_str = format_content(ground_truth)
+        resp_str = format_content(response)
+        
         return f"""你是一个公正的八字命理评判专家。请评估以下模型回答的准确性。
 
 标准答案 (Ground Truth):
-{ground_truth}
+{gt_str}
 
 模型回答 (Model Response):
-{response}
+{resp_str}
 
 请根据以下标准给出 0 到 10 之间的评分（支持一位小数）：
 - 10分：完全正确，逻辑清晰，包含所有关键信息。
