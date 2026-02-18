@@ -29,7 +29,7 @@ def test_evaluator_integration(tmp_path):
     dummy_wuxing = WuxingAnalysis(counts={}, missing=[], sheng={}, ke={})
     dummy_ten_gods = TenGodsAnalysis(gods=[], counts={})
     dummy_strength = StrengthAnalysis(score=0.0, level="neutral")
-    dummy_interactions = InteractionsAnalysis(liuhe=[], liuchong=[], sanhe=[], xing=[], self_xing=[])
+    dummy_interactions = InteractionsAnalysis(liuhe=[], liuchong=[], sanhe=[], sanhui=[], xing=[], self_xing=[], liuhai=[])
     
     dummy_analysis = BaziAnalysis(
         chart=dummy_chart,

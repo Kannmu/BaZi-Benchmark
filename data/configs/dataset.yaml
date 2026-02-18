@@ -1,0 +1,28 @@
+generation:
+  total_samples: 1000
+  batch_size: 50
+  base_seed: 2024
+  num_workers: 6
+
+task_types:
+  - chart
+  - wuxing
+  - ten_gods
+  - strength
+  - interactions
+  - da_yun
+  - useful_god
+  - comprehensive
+
+date_range:
+  start_year: 1950
+  end_year: 2030
+
+location:
+  longitude: 120.0
+  latitude: 30.0
+  utc_offset: 8.0
+
+output:
+  dir: "data/samples"
+  filename: "bazi_benchmark.jsonl"

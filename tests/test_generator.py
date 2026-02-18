@@ -10,8 +10,8 @@ def test_generator_initialization():
     assert generator.calculator is not None
 
 def test_generate_random_date():
-    generator = BaziDatasetGenerator()
-    dt = generator.generate_random_date(2020, 2021)
+    generator = BaziDatasetGenerator(start_year=2020, end_year=2021)
+    dt = generator.generate_random_date()
     assert 2020 <= dt.year <= 2021
 
 def test_analyze():
@@ -36,7 +36,7 @@ def test_generate_sample_wuxing():
     generator = BaziDatasetGenerator()
     sample = generator.generate_sample("wuxing")
     assert "五行个数" in sample.instruction
-    assert "五行统计" in sample.expected_output
+    assert "counts" in sample.expected_output
 
 def test_generate_batch():
     generator = BaziDatasetGenerator()
@@ -56,17 +56,17 @@ def test_generate_sample_da_yun():
     generator = BaziDatasetGenerator()
     sample = generator.generate_sample("da_yun")
     assert "大运" in sample.instruction
-    assert "起运" in sample.expected_output
+    assert "dayun" in sample.expected_output
 
 def test_generate_sample_useful_god():
     generator = BaziDatasetGenerator()
     sample = generator.generate_sample("useful_god")
     assert "喜用神" in sample.instruction
-    assert "建议用神" in sample.expected_output
+    assert "useful_god" in sample.expected_output
 
 def test_generate_sample_comprehensive():
     generator = BaziDatasetGenerator()
     sample = generator.generate_sample("comprehensive")
     assert "综合八字分析" in sample.instruction
-    assert "四柱" in sample.expected_output
-    assert "喜用" in sample.expected_output
+    assert "chart" in sample.expected_output
+    assert "useful_god" in sample.expected_output

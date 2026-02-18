@@ -2,6 +2,7 @@
 
 import random
 import uuid
+import json
 from datetime import datetime, timedelta
 from typing import List, Optional
 
@@ -25,14 +26,27 @@ from .schema import (
 
 
 class BaziDatasetGenerator:
-    def __init__(self, seed: int = 42):
+    def __init__(
+        self,
+        seed: int = 42,
+        start_year: int = 1950,
+        end_year: int = 2030,
+        longitude: float = 120.0,
+        latitude: float = 30.0,
+        utc_offset: float = 8.0
+    ):
         self.calculator = BaZiCalculator()
         self.rng = random.Random(seed)
+        self.start_year = start_year
+        self.end_year = end_year
+        self.longitude = longitude
+        self.latitude = latitude
+        self.utc_offset = utc_offset
 
-    def generate_random_date(self, start_year: int = 1950, end_year: int = 2030) -> datetime:
+    def generate_random_date(self) -> datetime:
         """生成随机日期"""
-        start_date = datetime(start_year, 1, 1)
-        end_date = datetime(end_year, 12, 31)
+        start_date = datetime(self.start_year, 1, 1)
+        end_date = datetime(self.end_year, 12, 31)
         delta = end_date - start_date
         random_days = self.rng.randrange(delta.days)
         random_seconds = self.rng.randrange(24 * 60 * 60)
@@ -125,12 +139,8 @@ class BaziDatasetGenerator:
         """生成单个测试样本"""
         dt = self.generate_random_date()
         gender = self.rng.choice([0, 1])
-        # Default to Beijing
-        longitude = 120.0
-        latitude = 30.0
-        utc_offset = 8.0
         
-        analysis = self.analyze(dt, gender, longitude, latitude, utc_offset)
+        analysis = self.analyze(dt, gender, self.longitude, self.latitude, self.utc_offset)
         
         sample_id = str(uuid.uuid4())
         input_data = BaziInput(
@@ -140,9 +150,9 @@ class BaziDatasetGenerator:
             hour=dt.hour,
             minute=dt.minute,
             gender=gender,
-            longitude=longitude,
-            latitude=latitude,
-            utc_offset=utc_offset
+            longitude=self.longitude,
+            latitude=self.latitude,
+            utc_offset=self.utc_offset
         )
 
         instruction = ""
@@ -154,30 +164,36 @@ class BaziDatasetGenerator:
         gender_str = "男" if gender == 1 else "女"
 
         if task_type == "chart":
-            instruction = f"请根据公历 {dt.year}年{dt.month}月{dt.day}日 {dt.hour}时 排出八字四柱。"
-            expected_output = (
-                f"年柱: {analysis.chart.year}\n"
-                f"月柱: {analysis.chart.month}\n"
-                f"日柱: {analysis.chart.day}\n"
-                f"时柱: {analysis.chart.hour}"
-            )
+            instruction = f"请根据公历 {dt.year}年{dt.month}月{dt.day}日 {dt.hour}时 排出八字四柱。请以JSON格式输出，包含year, month, day, hour四个字段。"
+            expected_output = json.dumps({
+                "year": analysis.chart.year,
+                "month": analysis.chart.month,
+                "day": analysis.chart.day,
+                "hour": analysis.chart.hour
+            }, ensure_ascii=False)
             difficulty = 2
         
         elif task_type == "wuxing":
-            instruction = f"请分析该八字的五行个数与缺失（注意：必须计算地支藏干，天干和地支藏干一起统计）：{analysis.chart.year} {analysis.chart.month} {analysis.chart.day} {analysis.chart.hour}"
-            counts_str = ", ".join([f"{k}: {v}" for k, v in analysis.wuxing.counts.items()])
-            missing_str = ", ".join(analysis.wuxing.missing) if analysis.wuxing.missing else "无"
-            expected_output = f"五行统计: {counts_str}\n缺失五行: {missing_str}"
+            instruction = f"请分析该八字的五行个数与缺失（注意：必须计算地支藏干，天干和地支藏干一起统计）：{analysis.chart.year} {analysis.chart.month} {analysis.chart.day} {analysis.chart.hour}。请以JSON格式输出，包含counts对象和missing数组。"
+            expected_output = json.dumps({
+                "counts": analysis.wuxing.counts,
+                "missing": analysis.wuxing.missing
+            }, ensure_ascii=False)
             difficulty = 3
+            evaluation_type = "partial_match"
 
         elif task_type == "ten_gods":
-            instruction = f"请列出该八字天干的十神（按年干/月干/日干/时干顺序，只输出十神名称，用空格分隔）：{analysis.chart.year} {analysis.chart.month} {analysis.chart.day} {analysis.chart.hour}"
-            expected_output = " ".join(analysis.ten_gods.gods)
+            instruction = f"请列出该八字天干的十神（按年干/月干/日干/时干顺序）：{analysis.chart.year} {analysis.chart.month} {analysis.chart.day} {analysis.chart.hour}。请以JSON数组格式输出，例如 [\"正印\", \"正官\", ...]。"
+            expected_output = json.dumps(analysis.ten_gods.gods, ensure_ascii=False)
             difficulty = 3
+            evaluation_type = "partial_match"
             
         elif task_type == "strength":
-            instruction = f"请判断该八字日主的强弱（身强/身弱/中和）。请严格按以下格式输出结果：\n得分: <数值>\n判定: <身强/身弱/中和>\n八字为：{analysis.chart.year} {analysis.chart.month} {analysis.chart.day} {analysis.chart.hour}"
-            expected_output = f"得分: {analysis.strength.score}, 判定: {analysis.strength.level}"
+            instruction = f"请判断该八字日主的强弱（身强/身弱/中和）。请以JSON格式输出，包含score(数值)和level(判定结果)字段。八字为：{analysis.chart.year} {analysis.chart.month} {analysis.chart.day} {analysis.chart.hour}"
+            expected_output = json.dumps({
+                "score": analysis.strength.score,
+                "level": analysis.strength.level
+            }, ensure_ascii=False)
             difficulty = 4
 
         elif task_type == "interactions":
@@ -193,7 +209,6 @@ class BaziDatasetGenerator:
             if analysis.interactions.self_xing: output_dict["self_xing"] = analysis.interactions.self_xing
             if analysis.interactions.liuhai: output_dict["liuhai"] = analysis.interactions.liuhai
             
-            import json
             expected_output = json.dumps(output_dict, ensure_ascii=False)
             difficulty = 4
             evaluation_type = "partial_match"
@@ -203,28 +218,38 @@ class BaziDatasetGenerator:
             current_year = datetime.now().year
             years = [current_year, current_year + 1, current_year + 2]
             
-            instruction = f"请排出该{gender_str}命的大运（前3步），并推算{years[0]}-{years[2]}年的流年干支：{dt.year}年{dt.month}月{dt.day}日 {dt.hour}时生。"
+            instruction = f"请排出该{gender_str}命的大运（前3步），并推算{years[0]}-{years[2]}年的流年干支：{dt.year}年{dt.month}月{dt.day}日 {dt.hour}时生。请以JSON格式输出，包含dayun数组(每个元素含start_age, ganzhi)和liunian数组(每个元素含year, ganzhi)。"
             
             dys = analysis.da_yun.pillars
             if len(dys) >= 3:
                 dys = dys[:3]
-            dy_lines = [f"{d['start_age']}岁起运: {d['ganzhi']}" for d in dys]
             
-            ln_lines = []
+            dayun_list = [{"start_age": d['start_age'], "ganzhi": d['ganzhi']} for d in dys]
+            
+            liunian_list = []
             for y in years:
                 ln_ganzhi = self.calculator.calculate_liunian(y)
-                ln_lines.append(f"{y}年: {ln_ganzhi}")
+                liunian_list.append({"year": y, "ganzhi": ln_ganzhi})
             
-            expected_output = "大运:\n" + ("\n".join(dy_lines) if dy_lines else "无大运数据") + "\n\n流年:\n" + "\n".join(ln_lines)
+            expected_output = json.dumps({
+                "dayun": dayun_list,
+                "liunian": liunian_list
+            }, ensure_ascii=False)
             difficulty = 5
+            evaluation_type = "partial_match"
 
         elif task_type == "useful_god":
-            instruction = f"请判断该八字的日主强弱并建议喜用神：{analysis.chart.year} {analysis.chart.month} {analysis.chart.day} {analysis.chart.hour}"
-            expected_output = f"日主{analysis.strength.level}，建议用神：{analysis.useful_god.god}，理由：{analysis.useful_god.reason}"
+            instruction = f"请判断该八字的日主强弱并建议喜用神：{analysis.chart.year} {analysis.chart.month} {analysis.chart.day} {analysis.chart.hour}。请以JSON格式输出，包含level(强弱), useful_god(用神类型), reason(理由)字段。"
+            expected_output = json.dumps({
+                "level": analysis.strength.level,
+                "useful_god": analysis.useful_god.god,
+                "reason": analysis.useful_god.reason
+            }, ensure_ascii=False)
             difficulty = 5
+            evaluation_type = "partial_match"
 
         elif task_type == "comprehensive":
-            instruction = f"请对该{gender_str}命进行综合八字分析：{dt.year}年{dt.month}月{dt.day}日 {dt.hour}时。\n请从以下几个方面进行分析：\n1. 四柱排盘\n2. 五行旺衰\n3. 日主强弱\n4. 用神建议\n5. 性格简评"
+            instruction = f"请对该{gender_str}命进行综合八字分析：{dt.year}年{dt.month}月{dt.day}日 {dt.hour}时。请以JSON格式输出，包含chart(四柱), wuxing(五行统计), strength(强弱), useful_god(用神), personality(性格)字段。"
             
             # Simple personality heuristic based on Day Master
             dm = analysis.chart.day_stem
@@ -235,14 +260,23 @@ class BaziDatasetGenerator:
             elif dm in ["庚", "辛"]: personality = "刚毅果断，讲义气。"
             elif dm in ["壬", "癸"]: personality = "聪明智慧，善于变化。"
             
-            expected_output = (
-                f"1. 四柱: {analysis.chart.year} {analysis.chart.month} {analysis.chart.day} {analysis.chart.hour}\n"
-                f"2. 五行: {analysis.wuxing.counts}\n"
-                f"3. 强弱: {analysis.strength.level} (得分: {analysis.strength.score})\n"
-                f"4. 用神: {analysis.useful_god.god}\n"
-                f"5. 性格: {personality}"
-            )
+            expected_output = json.dumps({
+                "chart": {
+                    "year": analysis.chart.year,
+                    "month": analysis.chart.month,
+                    "day": analysis.chart.day,
+                    "hour": analysis.chart.hour
+                },
+                "wuxing": analysis.wuxing.counts,
+                "strength": {
+                    "level": analysis.strength.level,
+                    "score": analysis.strength.score
+                },
+                "useful_god": analysis.useful_god.god,
+                "personality": personality
+            }, ensure_ascii=False)
             difficulty = 5
+            evaluation_type = "partial_match"
 
         return BaziSample(
             id=sample_id,

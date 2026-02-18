@@ -5,14 +5,30 @@ import os
 import random
 import multiprocessing as mp
 from functools import partial
+from pathlib import Path
+import yaml
 from tqdm import tqdm
 from bazibench.dataset.generator import BaziDatasetGenerator
 from bazibench.dataset.validator import BaziValidator
 
+def load_config(config_path: str = None) -> dict:
+    if config_path is None:
+        config_path = Path(__file__).parent.parent / "data" / "configs" / "dataset.yaml"
+    
+    with open(config_path, "r", encoding="utf-8") as f:
+        return yaml.safe_load(f)
+
 def _generate_batch_worker(args):
     """批量生成工作函数，返回序列化后的JSON字符串列表"""
-    task_types, batch_size, base_seed = args
-    generator = BaziDatasetGenerator(seed=base_seed)
+    task_types, batch_size, base_seed, config = args
+    generator = BaziDatasetGenerator(
+        seed=base_seed,
+        start_year=config["date_range"]["start_year"],
+        end_year=config["date_range"]["end_year"],
+        longitude=config["location"]["longitude"],
+        latitude=config["location"]["latitude"],
+        utc_offset=config["location"]["utc_offset"]
+    )
     validator = BaziValidator()
     
     valid_samples = []
@@ -31,13 +47,20 @@ def _generate_batch_worker(args):
     return valid_samples, errors_count
 
 def main():
-    output_dir = "data/samples"
+    config = load_config()
+    
+    gen_config = config["generation"]
+    output_dir = config["output"]["dir"]
     os.makedirs(output_dir, exist_ok=True)
     
-    task_types = ["chart", "wuxing", "ten_gods", "strength", "interactions", "da_yun", "useful_god", "comprehensive"]
-    total_samples = 1000
+    task_types = config["task_types"]
+    total_samples = gen_config["total_samples"]
+    batch_size = gen_config["batch_size"]
+    base_seed = gen_config["base_seed"]
     
-    num_workers = max(1, mp.cpu_count() - 1)
+    num_workers = gen_config.get("num_workers", -1)
+    if num_workers <= 0:
+        num_workers = max(1, mp.cpu_count() - 1)
     print(f"Using {num_workers} workers for parallel generation...")
     
     valid_samples = []
@@ -45,12 +68,11 @@ def main():
     
     print(f"Generating {total_samples} samples...")
     
-    batch_size = 50
     num_batches = (total_samples + batch_size - 1) // batch_size
     
     with mp.Pool(processes=num_workers) as pool:
         batch_args = [
-            (task_types, batch_size, 2024 + i * 1000)
+            (task_types, batch_size, base_seed + i * 1000, config)
             for i in range(num_batches)
         ]
         
@@ -65,7 +87,7 @@ def main():
     print(f"Total validation errors: {total_errors}")
     valid_samples = valid_samples[:total_samples]
     
-    output_file = os.path.join(output_dir, "bazi_benchmark.jsonl")
+    output_file = os.path.join(output_dir, config["output"]["filename"])
     with open(output_file, "w", encoding="utf-8") as f:
         for sample_json in valid_samples:
             f.write(sample_json + "\n")

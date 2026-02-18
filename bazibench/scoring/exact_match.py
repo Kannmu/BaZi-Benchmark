@@ -178,16 +178,43 @@ class ExactMatchScorer(BaseScorer):
         if not isinstance(response, str):
             return response
             
-        json_match = re.search(r'```json\n(.*?)\n```', response, re.DOTALL)
+        # 1. Try to find markdown code block
+        json_match = re.search(r'```(?:json)?\s*(\{.*\}|\[.*\])\s*```', response, re.DOTALL)
         if json_match:
             try:
                 return json.loads(json_match.group(1))
             except json.JSONDecodeError:
                 pass
         
+        # 2. Try raw parse
         try:
             return json.loads(response)
         except json.JSONDecodeError:
             pass
             
+        # 3. Try to find the first valid JSON object/array in the text
+        # This is a simple heuristic: find first { and last } or first [ and last ]
+        try:
+            # Check for object
+            start_brace = response.find('{')
+            end_brace = response.rfind('}')
+            if start_brace != -1 and end_brace != -1 and end_brace > start_brace:
+                possible_json = response[start_brace:end_brace+1]
+                try:
+                    return json.loads(possible_json)
+                except json.JSONDecodeError:
+                    pass
+
+            # Check for array
+            start_bracket = response.find('[')
+            end_bracket = response.rfind(']')
+            if start_bracket != -1 and end_bracket != -1 and end_bracket > start_bracket:
+                possible_json = response[start_bracket:end_bracket+1]
+                try:
+                    return json.loads(possible_json)
+                except json.JSONDecodeError:
+                    pass
+        except Exception:
+            pass
+
         return response.strip()

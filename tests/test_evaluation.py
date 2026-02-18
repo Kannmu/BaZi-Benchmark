@@ -31,7 +31,7 @@ def sample_data():
             ten_gods=TenGodsAnalysis(gods=[], counts={}),
             strength=StrengthAnalysis(score=0.5, level="Balanced"),
             interactions=InteractionsAnalysis(
-                liuhe=[], liuchong=[], sanhe=[], xing=[], self_xing=[]
+                liuhe=[], liuchong=[], sanhe=[], sanhui=[], xing=[], self_xing=[], liuhai=[]
             )
         ),
         instruction="Analyze this bazi.",
