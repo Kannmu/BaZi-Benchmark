@@ -1,11 +1,14 @@
 from typing import Optional, Dict, Any
 import os
 from .base import ModelBase
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
 try:
     from openai import OpenAI
+    import openai
 except ImportError:
     OpenAI = None
+    openai = None
 
 class OpenAIModel(ModelBase):
     """
@@ -40,6 +43,11 @@ class OpenAIModel(ModelBase):
         # Initialize client
         self.client = OpenAI(**client_args)
 
+    @retry(
+        stop=stop_after_attempt(5),
+        wait=wait_exponential(multiplier=1, min=2, max=10),
+        retry=retry_if_exception_type((Exception)) # Retry on most exceptions for robustness, can be specific if needed
+    )
     def generate(self, prompt: str, system_prompt: Optional[str] = None, **kwargs) -> str:
         messages = []
         if system_prompt:
@@ -58,8 +66,6 @@ class OpenAIModel(ModelBase):
         # Update with kwargs passed to generate
         generation_params.update(kwargs)
         
-        try:
-            response = self.client.chat.completions.create(**generation_params)
-            return response.choices[0].message.content
-        except Exception as e:
-            return f"Error: {str(e)}"
+        # Direct call, letting tenacity handle exceptions
+        response = self.client.chat.completions.create(**generation_params)
+        return response.choices[0].message.content

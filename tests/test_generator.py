@@ -21,6 +21,8 @@ def test_analyze():
     assert isinstance(analysis, BaziAnalysis)
     assert analysis.chart.year_stem is not None
     assert analysis.wuxing.counts is not None
+    assert analysis.da_yun is not None
+    assert analysis.useful_god is not None
 
 def test_generate_sample_chart():
     generator = BaziDatasetGenerator()
@@ -42,3 +44,29 @@ def test_generate_batch():
     assert len(samples) == 5
     for sample in samples:
         assert isinstance(sample, BaziSample)
+
+def test_generate_sample_interactions():
+    generator = BaziDatasetGenerator()
+    sample = generator.generate_sample("interactions")
+    assert "刑冲合害" in sample.instruction
+    # Output might be "无明显刑冲合害" or details.
+    assert isinstance(sample.expected_output, str)
+
+def test_generate_sample_da_yun():
+    generator = BaziDatasetGenerator()
+    sample = generator.generate_sample("da_yun")
+    assert "大运" in sample.instruction
+    assert "起运" in sample.expected_output
+
+def test_generate_sample_useful_god():
+    generator = BaziDatasetGenerator()
+    sample = generator.generate_sample("useful_god")
+    assert "喜用神" in sample.instruction
+    assert "建议用神" in sample.expected_output
+
+def test_generate_sample_comprehensive():
+    generator = BaziDatasetGenerator()
+    sample = generator.generate_sample("comprehensive")
+    assert "综合八字分析" in sample.instruction
+    assert "四柱" in sample.expected_output
+    assert "喜用" in sample.expected_output

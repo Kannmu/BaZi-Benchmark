@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
-from datetime import datetime, date
+from datetime import datetime, timedelta
+from typing import List, Dict
 
-from .constants import TIANGAN, DIZHI, WU_HU_DUN, WU_SHU_DUN
-
-BASE_DAY = date(1900, 1, 31)  # 甲子日
-
+from lunar_python import Solar
 
 @dataclass(frozen=True)
 class BaZiPillar:
@@ -24,74 +23,93 @@ class BaZiCalculator:
     def __init__(self) -> None:
         pass
 
-    def calculate(self, dt: datetime) -> dict:
-        year_pillar = self._year_pillar(dt)
-        month_pillar = self._month_pillar(dt, year_pillar.stem)
-        day_pillar = self._day_pillar(dt)
-        hour_pillar = self._hour_pillar(dt, day_pillar.stem)
+    def _get_solar(self, dt: datetime, longitude: float = 120.0) -> Solar:
+        """
+        根据时间和经度获取True Solar Time对应的Solar对象。
+        """
+        # 1. 计算真太阳时 (True Solar Time)
+        # 1.1 平太阳时 (Local Mean Time)
+        offset_minutes = (longitude - 120.0) * 4
+        
+        # 1.2 真太阳时均时差 (Equation of Time)
+        day_of_year = dt.timetuple().tm_yday
+        B = 360 * (day_of_year - 81) / 365
+        B_rad = math.radians(B)
+        eot = 9.87 * math.sin(2 * B_rad) - 7.53 * math.cos(B_rad) - 1.5 * math.sin(B_rad)
+        
+        total_offset_minutes = offset_minutes + eot
+        true_solar_time = dt + timedelta(minutes=total_offset_minutes)
+        
+        return Solar.fromYmdHms(
+            true_solar_time.year, 
+            true_solar_time.month, 
+            true_solar_time.day, 
+            true_solar_time.hour, 
+            true_solar_time.minute, 
+            true_solar_time.second
+        )
 
+    def calculate(self, dt: datetime, longitude: float = 120.0, latitude: float = 30.0) -> dict:
+        """
+        计算八字四柱。
+        
+        Args:
+            dt: datetime对象 (Clock Time)
+            longitude: 经度，默认120.0 (北京时间基准)
+            latitude: 纬度，默认30.0 (目前用于真太阳时计算的预留)
+            
+        Returns:
+            dict: 包含四柱信息的字典
+        """
+        solar = self._get_solar(dt, longitude)
+        lunar = solar.getLunar()
+        bazi = lunar.getEightChar()
+        
+        # 3. 提取结果
+        year_ganzhi = bazi.getYear()
+        month_ganzhi = bazi.getMonth()
+        day_ganzhi = bazi.getDay()
+        hour_ganzhi = bazi.getTime()
+        
         return {
-            "year": year_pillar.ganzhi,
-            "month": month_pillar.ganzhi,
-            "day": day_pillar.ganzhi,
-            "hour": hour_pillar.ganzhi,
-            "year_stem": year_pillar.stem,
-            "year_branch": year_pillar.branch,
-            "month_stem": month_pillar.stem,
-            "month_branch": month_pillar.branch,
-            "day_stem": day_pillar.stem,
-            "day_branch": day_pillar.branch,
-            "hour_stem": hour_pillar.stem,
-            "hour_branch": hour_pillar.branch,
+            "year": year_ganzhi,
+            "month": month_ganzhi,
+            "day": day_ganzhi,
+            "hour": hour_ganzhi,
+            "year_stem": year_ganzhi[0],
+            "year_branch": year_ganzhi[1],
+            "month_stem": month_ganzhi[0],
+            "month_branch": month_ganzhi[1],
+            "day_stem": day_ganzhi[0],
+            "day_branch": day_ganzhi[1],
+            "hour_stem": hour_ganzhi[0],
+            "hour_branch": hour_ganzhi[1],
         }
 
-    def _year_pillar(self, dt: datetime) -> BaZiPillar:
-        y = dt.year
-        if (dt.month, dt.day) < (2, 4):
-            y -= 1
-        stem = TIANGAN[(y - 3) % 10]
-        branch = DIZHI[(y - 3) % 12]
-        return BaZiPillar(stem, branch)
-
-    def _month_pillar(self, dt: datetime, year_stem: str) -> BaZiPillar:
-        m = dt.month
-        if (dt.month, dt.day) < (2, 4):
-            m = 1
-        month_branches = [
-            None,
-            "丑",
-            "寅",
-            "卯",
-            "辰",
-            "巳",
-            "午",
-            "未",
-            "申",
-            "酉",
-            "戌",
-            "亥",
-            "子",
-        ]
-        month_branch = month_branches[m]
-        month_branch_index = DIZHI.index(month_branch)
-
-        start_stem = WU_HU_DUN[year_stem]
-        start_index = TIANGAN.index(start_stem)
-        stem_index = (start_index + (month_branch_index - 2)) % 10
-        month_stem = TIANGAN[stem_index]
-        return BaZiPillar(month_stem, month_branch)
-
-    def _day_pillar(self, dt: datetime) -> BaZiPillar:
-        delta = (dt.date() - BASE_DAY).days
-        stem = TIANGAN[delta % 10]
-        branch = DIZHI[delta % 12]
-        return BaZiPillar(stem, branch)
-
-    def _hour_pillar(self, dt: datetime, day_stem: str) -> BaZiPillar:
-        hour_branch_index = ((dt.hour + 1) // 2) % 12
-        hour_branch = DIZHI[hour_branch_index]
-
-        start_stem = WU_SHU_DUN[day_stem]
-        start_index = TIANGAN.index(start_stem)
-        hour_stem = TIANGAN[(start_index + hour_branch_index) % 10]
-        return BaZiPillar(hour_stem, hour_branch)
+    def calculate_dayun(self, dt: datetime, gender: int, longitude: float = 120.0) -> List[Dict]:
+        """
+        计算大运。
+        
+        Args:
+            dt: 出生时间
+            gender: 性别 (1男, 0女)
+            longitude: 经度
+            
+        Returns:
+            List[Dict]: 大运列表，包含 start_age, start_year, ganzhi
+        """
+        solar = self._get_solar(dt, longitude)
+        lunar = solar.getLunar()
+        bazi = lunar.getEightChar()
+        yun = bazi.getYun(gender)
+        da_yun_list = yun.getDaYun()
+        
+        result = []
+        # lunar_python的大运列表第0个通常是起运前，跳过
+        for dy in da_yun_list[1:]:
+             result.append({
+                 "start_year": dy.getStartYear(),
+                 "start_age": dy.getStartAge(),
+                 "ganzhi": dy.getGanZhi()
+             })
+        return result

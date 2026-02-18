@@ -51,6 +51,18 @@ class InteractionsAnalysis(BaseModel):
     self_xing: List[str] = Field(..., description="自刑")
 
 
+class DaYunAnalysis(BaseModel):
+    """大运分析结果"""
+    gender: int = Field(..., description="性别(1男0女)")
+    pillars: List[Dict[str, Any]] = Field(..., description="大运列表(start_year, start_age, ganzhi)")
+
+
+class UsefulGodAnalysis(BaseModel):
+    """用神分析结果"""
+    god: str = Field(..., description="建议用神")
+    reason: str = Field(..., description="选取理由")
+
+
 class BaziAnalysis(BaseModel):
     """完整的八字分析结果"""
     chart: BaziChart
@@ -58,6 +70,8 @@ class BaziAnalysis(BaseModel):
     ten_gods: TenGodsAnalysis
     strength: StrengthAnalysis
     interactions: InteractionsAnalysis
+    da_yun: Optional[DaYunAnalysis] = None
+    useful_god: Optional[UsefulGodAnalysis] = None
 
 
 class BaziInput(BaseModel):
@@ -67,6 +81,7 @@ class BaziInput(BaseModel):
     day: int = Field(..., description="公历日期")
     hour: int = Field(..., description="公历小时")
     minute: int = Field(0, description="公历分钟")
+    gender: Optional[int] = Field(None, description="性别(1男0女)，可选")
 
 
 class BaziSample(BaseModel):

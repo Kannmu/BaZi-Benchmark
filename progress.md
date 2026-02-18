@@ -6,6 +6,36 @@
 
 ## 会话日志
 
+### 2026-02-18 会话6 (Refactoring & Fixes)
+
+**任务**: 修复PRD中报告的问题（核心计算、评估框架、数据生成器）
+
+**操作记录**:
+
+1.  **核心计算升级**:
+    -   集成 `lunar_python` 库以实现精确的节气和真太阳时计算
+    -   重构 `BaZiCalculator.calculate` 使用 `lunar_python`
+    -   实现 `calculate_dayun` 支持大运排盘
+    -   优化 `strength.py` 评分逻辑（增加月令权重，区分藏干主气余气）
+    -   更新 `tests/test_calculator.py` 修正测试预期
+2.  **评估框架增强**:
+    -   更新 `Evaluator.evaluate` 支持断点续传（跳过已存在的ID）
+    -   在 `OpenAIModel.generate` 中添加 `tenacity` 重试机制
+    -   统一异常处理（Evaluator 捕获异常并记录）
+3.  **数据生成器扩展**:
+    -   在 schema 中添加 `DaYunAnalysis` 和 `UsefulGodAnalysis`
+    -   实现缺失的任务类型: `interactions`, `da_yun`, `useful_god`, `comprehensive`
+    -   在 `tests/test_generator.py` 中添加新任务类型的测试
+4.  **工程化改进**:
+    -   添加 `bazibench/utils/logger.py`
+    -   在 `__init__.py` 中添加 `python-dotenv` 支持
+    -   更新 `requirements.txt`
+    -   在 `__init__.py` 中导出核心类
+
+**当前状态**: 所有报告的高/中优先级问题已解决，所有测试通过。
+
+---
+
 ### 2026-02-18 会话5
 
 **任务**: 配置 ZenMux 模型服务
@@ -114,6 +144,10 @@
 | bazibench/dataset/ | 创建 | 数据集模块 |
 | scripts/generate_data.py | 创建 | 数据生成脚本 |
 | data/samples/ | 生成 | 初始数据集 |
+| bazibench/core/calculator.py | 重构 | 使用 lunar_python |
+| bazibench/evaluation/evaluator.py | 修改 | 支持断点续传 |
+| bazibench/models/openai_model.py | 修改 | 添加重试机制 |
+| bazibench/dataset/generator.py | 修改 | 增加新任务类型 |
 
 ---
 
@@ -121,12 +155,14 @@
 
 - 2026-02-18: pytest 全部通过（用户本地环境）
 - 2026-02-18: 数据集生成脚本成功生成 1000 条有效样本
+- 2026-02-18: 修复后 pytest 全部通过 (Session 6)
 
 ---
 
 ## 问题与解决
 
-(待记录)
+- **Issue**: 原有八字计算逻辑过于简单，不支持真太阳时和精确节气。
+- **Solution**: 引入 `lunar_python` 库，重写 `BaZiCalculator`，并手动实现真太阳时校正。
 
 ---
 
@@ -138,3 +174,4 @@
 - [x] 验证计算准确性
 - [x] 实现数据集生成器
 - [x] 生成初始数据集
+- [x] 修复PRD报告的问题
