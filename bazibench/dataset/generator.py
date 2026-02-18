@@ -11,6 +11,7 @@ from ..core.wuxing import analyze_wuxing
 from ..core.ten_gods import analyze_ten_gods
 from ..core.strength import analyze_strength
 from ..core.interactions import analyze_interactions
+from ..core.pattern import analyze_pattern
 from .schema import (
     BaziSample,
     BaziInput,
@@ -20,6 +21,7 @@ from .schema import (
     TenGodsAnalysis,
     StrengthAnalysis,
     InteractionsAnalysis,
+    PatternAnalysis,
     DaYunAnalysis,
     UsefulGodAnalysis
 )
@@ -61,6 +63,7 @@ class BaziDatasetGenerator:
         wuxing_data = analyze_wuxing(chart_data)
         ten_gods_data = analyze_ten_gods(chart_data)
         strength_data = analyze_strength(chart_data)
+        pattern_data = analyze_pattern(chart_data, ten_gods_data, strength_data)
         
         branches = [
             chart_data["year_branch"],
@@ -73,18 +76,28 @@ class BaziDatasetGenerator:
         # Simple Useful God Heuristic
         # Strength Thresholds: >= 1.0 Strong, >= -1.0 Neutral, < -1.0 Weak
         score = strength_data["score"]
+        ug_list = []
+        unfavorable_list = []
+        
         if score < -1.0:
-             ug_type = "印比 (生扶)"
+             ug_type = "印比 (生扶)" # Keep for backward compat in logic if needed, but we use list now
+             ug_list = ["印", "比"]
+             unfavorable_list = ["财", "官", "食", "伤"]
              reason = "日主偏弱，宜用印星生身或比劫帮身"
              # Tiao Hou (Basic)
              month_branch = chart_data["month_branch"]
              if month_branch in ["亥", "子", "丑"] and "火" not in wuxing_data["counts"]: # Winter needs Fire
                  reason += "；生于冬月，需火调候暖局"
+                 ug_list.append("火")
         elif score >= 1.0:
              ug_type = "克泄耗 (抑制)"
+             ug_list = ["官", "杀", "食", "伤", "财"]
+             unfavorable_list = ["印", "比"]
              reason = "日主偏强，宜用官杀克制、食伤泄秀或财星耗身"
         else:
              ug_type = "中和"
+             ug_list = ["中和"]
+             unfavorable_list = []
              reason = "日主中和，需视具体组合而定"
 
         return BaziAnalysis(
@@ -125,12 +138,18 @@ class BaziDatasetGenerator:
                 self_xing=interactions_data["self_xing"],
                 liuhai=interactions_data["liuhai"]
             ),
+            pattern=PatternAnalysis(
+                main_pattern=pattern_data["main_pattern"],
+                sub_patterns=pattern_data["sub_patterns"],
+                description=pattern_data["description"]
+            ),
             da_yun=DaYunAnalysis(
                 gender=gender,
                 pillars=da_yun_list
             ),
             useful_god=UsefulGodAnalysis(
-                god=ug_type,
+                god=ug_list,
+                unfavorable=unfavorable_list,
                 reason=reason
             )
         )
@@ -213,6 +232,16 @@ class BaziDatasetGenerator:
             difficulty = 4
             evaluation_type = "partial_match"
 
+        elif task_type == "pattern":
+            instruction = f"请判断该八字的格局（如：正官格、七杀格等）。请以JSON格式输出，包含main_pattern(主要格局), sub_patterns(兼格), description(描述)字段。八字为：{analysis.chart.year} {analysis.chart.month} {analysis.chart.day} {analysis.chart.hour}"
+            expected_output = json.dumps({
+                "main_pattern": analysis.pattern.main_pattern,
+                "sub_patterns": analysis.pattern.sub_patterns,
+                "description": analysis.pattern.description
+            }, ensure_ascii=False)
+            difficulty = 5
+            evaluation_type = "partial_match"
+
         elif task_type == "da_yun":
             # Current year range for Liu Nian
             current_year = datetime.now().year
@@ -239,10 +268,11 @@ class BaziDatasetGenerator:
             evaluation_type = "partial_match"
 
         elif task_type == "useful_god":
-            instruction = f"请判断该八字的日主强弱并建议喜用神：{analysis.chart.year} {analysis.chart.month} {analysis.chart.day} {analysis.chart.hour}。请以JSON格式输出，包含level(强弱), useful_god(用神类型), reason(理由)字段。"
+            instruction = f"请判断该八字的日主强弱并建议喜用神：{analysis.chart.year} {analysis.chart.month} {analysis.chart.day} {analysis.chart.hour}。请以JSON格式输出，包含level(强弱), useful_god(用神列表), unfavorable(忌神列表), reason(理由)字段。"
             expected_output = json.dumps({
                 "level": analysis.strength.level,
                 "useful_god": analysis.useful_god.god,
+                "unfavorable": analysis.useful_god.unfavorable,
                 "reason": analysis.useful_god.reason
             }, ensure_ascii=False)
             difficulty = 5

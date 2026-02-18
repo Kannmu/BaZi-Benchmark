@@ -94,8 +94,18 @@ class OpenAIModel(ModelBase):
             "model": self.model_name,
             "messages": messages,
             "temperature": self.config.get("temperature", 0.7),
-            "max_tokens": self.config.get("max_tokens", 4096),
         }
+        
+        # Handle max_tokens and max_completion_tokens
+        # Priority: kwargs > config > default
+        # If max_completion_tokens is set (for reasoning models), we prefer it over max_tokens
+        max_completion_tokens = self.config.get("max_completion_tokens")
+        max_tokens = self.config.get("max_tokens", 4096)
+
+        if max_completion_tokens:
+            generation_params["max_completion_tokens"] = max_completion_tokens
+        else:
+            generation_params["max_tokens"] = max_tokens
         
         # Update with kwargs passed to generate
         generation_params.update(kwargs)
@@ -107,17 +117,35 @@ class OpenAIModel(ModelBase):
             # Extract content
             message = response.choices[0].message
             content = message.content
-            
+
+            # Check for truncation
+            if hasattr(response.choices[0], "finish_reason") and response.choices[0].finish_reason == "length":
+                logger.warning(f"Model {self.model_name} response truncated due to length limit.")
+
             # Log reasoning if available (for debugging/analysis purposes)
             # OpenAI python client might hide extra fields, check if we can access it
-            if hasattr(message, "reasoning") and message.reasoning:
-                logger.info(f"Model {self.model_name} provided reasoning (length: {len(message.reasoning)})")
+            reasoning = None
+            if hasattr(message, "reasoning_content") and message.reasoning_content:
+                reasoning = message.reasoning_content
+                logger.info(f"Model {self.model_name} provided reasoning_content (length: {len(reasoning)})")
+            elif hasattr(message, "reasoning") and message.reasoning:
+                reasoning = message.reasoning
+                logger.info(f"Model {self.model_name} provided reasoning (length: {len(message.reasoning) if message.reasoning else 0})")
             elif hasattr(message, "model_extra") and message.model_extra and "reasoning" in message.model_extra:
-                logger.info(f"Model {self.model_name} provided reasoning (length: {len(message.model_extra['reasoning'])})")
+                reasoning = message.model_extra.get("reasoning")
+                if reasoning:
+                    logger.info(f"Model {self.model_name} provided reasoning (length: {len(reasoning)})")
             elif hasattr(message, "_previous") and "reasoning" in message._previous:
                  # Pydantic v1 fallback for extra fields
-                 logger.info(f"Model {self.model_name} provided reasoning (length: {len(message._previous['reasoning'])})")
-                
+                 reasoning = message._previous.get("reasoning")
+                 if reasoning:
+                     logger.info(f"Model {self.model_name} provided reasoning (length: {len(reasoning)})")
+            
+            # Fallback for models that put everything in reasoning (like Minimax m2.5 sometimes)
+            if not content and reasoning:
+                logger.warning(f"Model {self.model_name} returned empty content but has reasoning. Using reasoning as content.")
+                content = reasoning
+                 
             return content
         except Exception as e:
             logger.error(f"Error generating response from {self.model_name}: {e}")

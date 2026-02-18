@@ -53,7 +53,7 @@ def main():
     parser = argparse.ArgumentParser(description="BaZiBench 评估脚本")
     parser.add_argument("--model", type=str, required=True, help="模型名称")
     parser.add_argument("--input", type=str, default=None, help="输入数据文件路径")
-    parser.add_argument("--samples", type=int, default=None, help="随机抽取的样本数量")
+    parser.add_argument("--samples", type=int, default=100, help="随机抽取的样本数量")
     parser.add_argument("--limit", type=int, default=None, help="限制样本数量(从头部开始)")
     parser.add_argument("--batch-size", type=int, default=1, help="并发数")
     parser.add_argument("--output-dir", type=str, default=None, help="输出目录")
@@ -127,4 +127,8 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("\nBenchmark interrupted by user. Exiting...")
+        sys.exit(1)

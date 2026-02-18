@@ -1,59 +1,67 @@
 {
   "overall": {
-    "accuracy": 0.39666666666666667,
-    "std": 0.3838981346370125,
-    "total_samples": 100
+    "accuracy": 0.362485,
+    "std": 0.3822261689359383,
+    "total_samples": 1000
   },
   "by_difficulty": {
     "2": {
-      "accuracy": 0.3,
-      "count": 10
+      "accuracy": 0.39090909090909093,
+      "count": 110
     },
     "3": {
-      "accuracy": 0.6555555555555556,
-      "count": 30
+      "accuracy": 0.7294927536231884,
+      "count": 230
     },
     "4": {
-      "accuracy": 0.29333333333333333,
-      "count": 25
+      "accuracy": 0.2733333333333333,
+      "count": 225
     },
     "5": {
-      "accuracy": 0.27619047619047615,
-      "count": 35
+      "accuracy": 0.20736015325670498,
+      "count": 435
     }
   },
   "by_tag": {
     "chart": {
-      "accuracy": 0.3,
-      "count": 10
+      "accuracy": 0.39090909090909093,
+      "count": 110
     },
     "comprehensive": {
-      "accuracy": 0.0,
-      "count": 8
+      "accuracy": 0.1619753086419753,
+      "count": 108
     },
     "da_yun": {
       "accuracy": 0.5,
-      "count": 14
+      "count": 114
+    },
+    "gold_standard": {
+      "accuracy": 0.358687037037037,
+      "count": 900
     },
     "interactions": {
-      "accuracy": 0.5238095238095238,
-      "count": 14
+      "accuracy": 0.5394736842105263,
+      "count": 114
+    },
+    "pattern": {
+      "accuracy": 0.0,
+      "count": 100
     },
     "strength": {
       "accuracy": 0.0,
-      "count": 11
+      "count": 111
     },
     "ten_gods": {
-      "accuracy": 0.8627450980392156,
-      "count": 17
+      "accuracy": 0.8660968660968661,
+      "count": 117
     },
     "useful_god": {
-      "accuracy": 0.20512820512820512,
-      "count": 13
+      "accuracy": 0.1390117994100295,
+      "count": 113
     },
     "wuxing": {
-      "accuracy": 0.38461538461538464,
-      "count": 13
+      "accuracy": 0.5880530973451328,
+      "count": 113
     }
   }
 }

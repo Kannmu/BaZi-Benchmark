@@ -141,7 +141,9 @@ class Evaluator:
             return result
 
         # Run with ThreadPoolExecutor
-        with ThreadPoolExecutor(max_workers=batch_size) as executor:
+        executor = ThreadPoolExecutor(max_workers=batch_size)
+        futures = []
+        try:
             futures = [executor.submit(process_sample, sample) for sample in samples_to_process]
             
             for future in tqdm(as_completed(futures), total=len(samples_to_process), desc=f"Evaluating {self.model.model_name}"):
@@ -150,6 +152,18 @@ class Evaluator:
                     results.append(res)
                 except Exception as e:
                     print(f"Task failed: {e}")
+        except KeyboardInterrupt:
+            print(f"\nEvaluating {self.model.model_name} interrupted. Cancelling pending tasks...")
+            # Cancel all pending futures
+            for f in futures:
+                f.cancel()
+            # Shutdown without waiting
+            executor.shutdown(wait=False)
+            raise
+        finally:
+            # Ensure executor is properly cleaned up
+            # Since we cancelled pending tasks, this will only wait for currently running threads
+            executor.shutdown(wait=True)
             
         # Calculate and save metrics
         metrics = self._calculate_metrics(results)

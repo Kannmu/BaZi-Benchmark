@@ -53,6 +53,12 @@ class InteractionsAnalysis(BaseModel):
     liuhai: List[List[str]] = Field(..., description="六害")
 
 
+class PatternAnalysis(BaseModel):
+    """格局分析结果"""
+    main_pattern: str = Field(..., description="主要格局(如: 正官格)")
+    sub_patterns: List[str] = Field(default_factory=list, description="兼格/特殊格局(如: 官印相生)")
+    description: str = Field(..., description="格局描述")
+
 
 class DaYunAnalysis(BaseModel):
     """大运分析结果"""
@@ -62,7 +68,8 @@ class DaYunAnalysis(BaseModel):
 
 class UsefulGodAnalysis(BaseModel):
     """用神分析结果"""
-    god: str = Field(..., description="建议用神")
+    god: List[str] = Field(..., description="建议用神(支持多个，如['木', '火'])")
+    unfavorable: List[str] = Field(..., description="忌神")
     reason: str = Field(..., description="选取理由")
 
 
@@ -73,6 +80,7 @@ class BaziAnalysis(BaseModel):
     ten_gods: TenGodsAnalysis
     strength: StrengthAnalysis
     interactions: InteractionsAnalysis
+    pattern: Optional[PatternAnalysis] = None
     da_yun: Optional[DaYunAnalysis] = None
     useful_god: Optional[UsefulGodAnalysis] = None
 

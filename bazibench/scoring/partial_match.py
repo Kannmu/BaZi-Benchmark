@@ -87,7 +87,35 @@ class PartialMatchScorer(ExactMatchScorer):
         if not gt_list:
             return 1.0 if not resp_list else 0.0
             
-        # Normalize function
+        # Special handling for Useful God / Unfavorable elements (Loose matching)
+        if key in ["god", "unfavorable", "useful_god", "missing"]:
+            def normalize_loose(item):
+                if not isinstance(item, str): return str(item)
+                item = item.strip()
+                # Wuxing
+                if "木" in item: return "木"
+                if "火" in item: return "火"
+                if "土" in item: return "土"
+                if "金" in item: return "金"
+                if "水" in item: return "水"
+                # Ten Gods (Grouped)
+                if "印" in item or "枭" in item: return "印"
+                if "官" in item or "杀" in item: return "官杀"
+                if "财" in item: return "财"
+                if "食" in item or "伤" in item: return "食伤"
+                if "比" in item or "劫" in item: return "比劫"
+                return item
+
+            norm_gt = set(normalize_loose(x) for x in gt_list)
+            norm_resp = set(normalize_loose(x) for x in resp_list)
+            
+            if not norm_gt:
+                return 0.0
+            
+            match_count = len(norm_gt.intersection(norm_resp))
+            return match_count / len(norm_gt)
+
+        # Normalize function for strict matching
         def normalize(item):
             if isinstance(item, list):
                 # Recursively normalize list items in case of nested structures
