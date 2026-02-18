@@ -6,6 +6,14 @@ from typing import List, Dict, Any, Optional, Union
 from tqdm import tqdm
 from ..models.base import ModelBase
 from ..dataset.schema import BaziSample
+from ..scoring import ExactMatchScorer, PartialMatchScorer
+
+# Try to import numpy, if not available, use simple python implementation
+try:
+    import numpy as np
+    HAS_NUMPY = True
+except ImportError:
+    HAS_NUMPY = False
 
 class Evaluator:
     def __init__(self, model: ModelBase, output_dir: str):
@@ -13,6 +21,11 @@ class Evaluator:
         self.output_dir = output_dir
         os.makedirs(output_dir, exist_ok=True)
         self._lock = threading.Lock()
+        
+        self.scorers = {
+            'exact_match': ExactMatchScorer(),
+            'partial_match': PartialMatchScorer(),
+        }
         
     def evaluate(self, samples: Union[List[BaziSample], str], batch_size: int = 1) -> List[Dict]:
         """
@@ -67,6 +80,9 @@ class Evaluator:
         
         if not samples_to_process:
             print("All samples already evaluated.")
+            # Still calculate metrics for all results
+            metrics = self._calculate_metrics(results)
+            self._save_metrics(metrics)
             return results
         
         # Define processing function
@@ -80,6 +96,24 @@ class Evaluator:
             except Exception as e:
                 response = f"Error: {str(e)}"
             
+            # Determine scorer
+            eval_type = getattr(sample, 'evaluation_type', 'exact_match')
+            
+            # Heuristic for old data or missing evaluation_type
+            if not eval_type or eval_type not in self.scorers:
+                if "ten_gods" in sample.tags or "interactions" in sample.tags or "wuxing" in sample.tags:
+                     eval_type = 'partial_match'
+                else:
+                     eval_type = 'exact_match'
+            
+            scorer = self.scorers.get(eval_type, self.scorers['exact_match'])
+            
+            try:
+                score = scorer.score(sample.expected_output, response)
+            except Exception as e:
+                print(f"Scoring failed for sample {sample.id}: {e}")
+                score = 0.0
+
             # Create result object
             result = {
                 "sample_id": sample.id,
@@ -87,6 +121,8 @@ class Evaluator:
                 "instruction": sample.instruction,
                 "expected_output": sample.expected_output,
                 "model_output": response,
+                "score": score,
+                "evaluation_type": eval_type,
                 "difficulty": sample.difficulty,
                 "tags": sample.tags
             }
@@ -109,4 +145,79 @@ class Evaluator:
                 except Exception as e:
                     print(f"Task failed: {e}")
             
+        # Calculate and save metrics
+        metrics = self._calculate_metrics(results)
+        self._save_metrics(metrics)
+            
         return results
+
+    def _save_metrics(self, metrics: Dict):
+        metrics_path = os.path.join(self.output_dir, f"{self.model.model_name}_metrics.json")
+        with open(metrics_path, "w", encoding="utf-8") as f:
+            json.dump(metrics, f, indent=2, ensure_ascii=False)
+
+    def _calculate_metrics(self, results: List[Dict]) -> Dict:
+        """Calculate statistics metrics"""
+        if not results:
+            return {}
+            
+        scores = [r.get("score", 0.0) for r in results]
+        total_samples = len(results)
+        
+        if HAS_NUMPY:
+            mean_score = float(np.mean(scores))
+            std_score = float(np.std(scores))
+        else:
+            mean_score = sum(scores) / total_samples if total_samples > 0 else 0.0
+            # Simple std calculation
+            variance = sum((x - mean_score) ** 2 for x in scores) / total_samples if total_samples > 0 else 0.0
+            std_score = variance ** 0.5
+            
+        metrics = {
+            "overall": {
+                "accuracy": mean_score,
+                "std": std_score,
+                "total_samples": total_samples
+            },
+            "by_difficulty": {},
+            "by_tag": {}
+        }
+        
+        # Metrics by difficulty
+        difficulties = set(r.get("difficulty", 0) for r in results)
+        for diff in sorted(list(difficulties)):
+            diff_results = [r for r in results if r.get("difficulty") == diff]
+            diff_scores = [r.get("score", 0.0) for r in diff_results]
+            
+            if HAS_NUMPY:
+                diff_mean = float(np.mean(diff_scores))
+            else:
+                diff_mean = sum(diff_scores) / len(diff_scores) if diff_scores else 0.0
+                
+            metrics["by_difficulty"][str(diff)] = {
+                "accuracy": diff_mean,
+                "count": len(diff_results)
+            }
+            
+        # Metrics by tag
+        all_tags = set()
+        for r in results:
+            if r.get("tags"):
+                for tag in r.get("tags"):
+                    all_tags.add(tag)
+            
+        for tag in sorted(list(all_tags)):
+            tag_results = [r for r in results if tag in r.get("tags", [])]
+            tag_scores = [r.get("score", 0.0) for r in tag_results]
+            
+            if HAS_NUMPY:
+                tag_mean = float(np.mean(tag_scores))
+            else:
+                tag_mean = sum(tag_scores) / len(tag_scores) if tag_scores else 0.0
+                
+            metrics["by_tag"][tag] = {
+                "accuracy": tag_mean,
+                "count": len(tag_results)
+            }
+            
+        return metrics

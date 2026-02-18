@@ -94,6 +94,7 @@ class BaziSample(BaseModel):
     ground_truth: BaziAnalysis = Field(..., description="标准分析结果")
     instruction: str = Field(..., description="测试指令/问题")
     expected_output: str = Field(..., description="期望输出/参考答案")
+    evaluation_type: str = Field("exact_match", description="评估类型")
     difficulty: int = Field(..., description="难度等级(1-5)")
     tags: List[str] = Field(default_factory=list, description="标签")
     meta: Dict[str, Any] = Field(default_factory=dict, description="元数据")
