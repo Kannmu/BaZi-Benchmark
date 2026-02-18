@@ -1,0 +1,48 @@
+This is BibTeX, Version 0.99d (TeX Live 2025)
+Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
+The top-level auxiliary file: BaZiBench.aux
+The style file: plainnat.bst
+Database file #1: references.bib
+Warning--empty journal in anthropic2023claude
+You've used 18 entries,
+            2773 wiz_defined-function locations,
+            680 strings with 9159 characters,
+and the built_in function-call counts, 11946 in all, are:
+= -- 927
+> -- 1193
+< -- 8
++ -- 402
+- -- 384
+* -- 1087
+:= -- 1959
+add.period$ -- 56
+call.type$ -- 18
+change.case$ -- 174
+chr.to.int$ -- 18
+cite$ -- 37
+duplicate$ -- 402
+empty$ -- 650
+format.name$ -- 404
+if$ -- 2388
+int.to.chr$ -- 1
+int.to.str$ -- 1
+missing$ -- 19
+newline$ -- 99
+num.names$ -- 72
+pop$ -- 361
+preamble$ -- 1
+purify$ -- 157
+quote$ -- 0
+skip$ -- 390
+stack$ -- 0
+substring$ -- 191
+swap$ -- 52
+text.length$ -- 4
+text.prefix$ -- 0
+top$ -- 0
+type$ -- 193
+warning$ -- 1
+while$ -- 66
+width$ -- 0
+write$ -- 231
+(There was 1 warning)
